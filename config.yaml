@@ -1,0 +1,45 @@
+# ==========
+# Excel settings
+# ==========
+excel:
+  tab_sessions: sessions
+  tab_credentials: credentials
+  tab_firewalls: firewalls
+
+  # column names for 'sessions' tab
+  col_names_sessions:
+    folder: folder
+    session: session
+    # type: type # type
+    hostname: hostname
+    port: port
+    username: username
+
+    # SecureCRT values:
+    credential: credential group
+    colorscheme: colorscheme
+    keywords: keywords
+    firewall: firewall group
+
+  # column names for 'credentials group' tab
+  col_names_credentials:
+    credential: credential group
+    username: username
+
+  # column names for 'firewalls group' tab
+  col_names_firewalls:
+    firewall: firewall group
+    address: address
+    port: port
+    username: username
+
+# ==========
+# SecureCRT settings
+# ==========
+scrt:
+  # default XML template with (default) session settings
+  template:
+    root: templates/scrt_default_root.xml
+    session: templates/scrt_default_session.xml
+    credential: templates/scrt_default_credential.xml
+    firewall: templates/scrt_default_firewall.xml

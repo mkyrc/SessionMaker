@@ -1,1 +1,12 @@
+# visual code
 *.code-workspace
+.vscode/*
+
+# temporary files
+__pycache__
+*.~lock.*.xlsx#
+debug.log
+
+# data (EXAMPLES only)
+data/*
+!data/EXAMPLE

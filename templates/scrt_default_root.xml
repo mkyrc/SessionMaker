@@ -1,3 +1,4 @@
+<!-- default SecureCRT XML template -->
 <?xml version="1.0"?>
 <VanDyke version="3.0">
 	<!-- Sessions -->
@@ -9,5 +10,4 @@
 	<!-- Firewall -->
 	<key name="Firewalls">
 	</key>	
-
 </VanDyke>    

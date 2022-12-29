@@ -8,6 +8,7 @@ import xmltodict
 
 from .sm_excel import SMExcel
 from .sm_xml import SMXml
+from .sm_json import SMJson
 
 
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
@@ -47,8 +48,11 @@ class SessionMaker:
 
         # sessions (ordered dict)
         self._sessions_dict = dict()
-        self.set_sessions_dict(kwargs.get("sessions", None))
-
+        # self.set_sessions_dict(kwargs.get("sessions", None))
+        
+        # credential groups dict
+        self._credentials_dict = dict()
+        
         # XML file
         self.xml_file = ""
         self._xml_obj = SMXml()
@@ -59,6 +63,15 @@ class SessionMaker:
 
         # XML file to export to XLS
         self._sessions_dict_file_xml = ""
+
+        # JSON
+        self._json_obj = SMJson()
+        self._json_sessions = None
+
+        self.json_file = ""
+        self.set_json_file(
+            kwargs.get("json_file", ""), kwargs.get("read_json_file", False)
+        )
 
     # ====================
     # private methods
@@ -72,6 +85,14 @@ class SessionMaker:
     # public methods
     # ====================
 
+    def get_credentials_dict(self):
+        """Return credentials dictionary (ordered dict)."""
+        return self._credentials_dict
+    
+    def get_credentials_dict_count(self):
+        """Return credentials dictionary size (int)."""
+        return len(self._credentials_dict["credential"])    
+    
     def get_sessions_dict(self) -> dict:
         """Return sessions dictionary.
 
@@ -114,6 +135,19 @@ class SessionMaker:
 
         if self.excel_file != "" and read_excel_file:
             self.excel_read_book()
+
+    def set_json_file(self, json_file: str, read_json_file=False):
+        """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
+
+        Args:
+            xml_file (str): XML file (source or destination)
+        """
+        self.json_file = json_file
+
+        # TODO
+        # if self.json_file != "" and read_json_file:
+        #     # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
+        #     self.parse_json_file()
 
     def set_xml_file(self, xml_file: str, read_xml_file=False):
         """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
@@ -184,7 +218,7 @@ class SessionMaker:
 
         Args:
             sheet_name (str): Sheet's name
-            get (str): One of ['column', 'row', 'array']. Defaults to "array".
+            get (str): One of ['column', 'row', 'array']. Defaults to "column".
 
         Returns:
             ordered dict: Column/Row-based dictionary (when get=['column', 'row']
@@ -192,6 +226,43 @@ class SessionMaker:
             False: In case of error
         """
         return self._excel_obj.read_excel_sheet(sheet_name, type)
+
+    def excel_read_sheet_sessions(self, sheet_name: str) -> dict | list | bool:
+        """Read excel sheet 'sessions' and return content as dict/array.
+
+        Args:
+            sheet_name (str): Sheet's name
+
+        Returns:
+            ordered dict: Column/Row-based dictionary (when get=['column', 'row']
+            False: In case of error
+        """
+        sessions_dict = self.excel_read_sheet(sheet_name, "column")
+        sessions_dict = self.col_name_normalize(
+            sessions_dict, self._settings["excel"]["col_names_sessions"]
+        )
+        self.set_sessions_dict(sessions_dict)
+        
+        return self._sessions_dict
+
+    def col_name_normalize(self, ordered_dict, col_names):
+        """Change dictionary key from excel column name to system key defined in config.yaml
+
+        Args:
+            ordered_dict (ordered dict): Ordered dictionary (excel worksheet)
+            col_names (dict): Dictionary "dict_key_name: excel_column_name"
+
+        Returns:
+            ordered dict: normalized ordered dict
+        """
+
+        ret_object = {}
+        for dict_key in ordered_dict:
+            for key, value in col_names.items():
+                if dict_key == value:
+                    ret_object[key] = ordered_dict[dict_key]
+
+        return ret_object
 
     # ====================
     # XML methods
@@ -214,6 +285,39 @@ class SessionMaker:
             dst_file = self.xml_file
 
         self._xml_obj.write_xml_file(xml_element=xml_element, xml_file=dst_file)
+
+    # ====================
+    # JSON methods
+    # ====================
+
+    def print_json(self, **kwargs):
+        """Print JSON to stdout as formated JSON.
+        If not set, use self._json_sessions attribute.
+
+        Args:
+            json_content (optional): JSON to print.
+        """
+
+        json_content = kwargs.get("json_content", self._json_sessions)
+        self._json_obj.print_json(json_content)
+
+    def write_json(self, **kwargs) -> None:
+        """Write JSON to file
+
+        Args:
+            json_content (, optional): JSON object.
+            json_file (str, optional): Destination file. If not set, use self.xml_file.
+        """
+
+        json_content = kwargs.get("json_content", self._json_sessions)
+
+        # when xml_file is not defined, use object's self.xml_file attribute
+        if "json_file" in kwargs and kwargs.get("json_file") != "":
+            dst_file = kwargs["json_file"]
+        else:
+            dst_file = self.json_file
+
+        self._json_obj.write_json_file(json_content=json_content, json_file=dst_file)
 
     # ====================
     # general methods

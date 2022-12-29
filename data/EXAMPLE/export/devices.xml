@@ -56,7 +56,7 @@
 						<string name="Username">jano</string>
 						<string name="Credential Title" />
 						<string name="Keyword Set" />
-						<string name="Color Scheme">jano</string>
+						<string name="Color Scheme">Chalkboard</string>
 						<string name="Firewall Name">Session:tmp/customer1/f5/device3</string>
 						<string name="SSH2 Authentications V2">keyboard-interactive</string>
 						<string name="Cipher List">aes256-ctr,aes256-cbc</string>

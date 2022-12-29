@@ -25,25 +25,26 @@ from lib.settings import read_config_file
 from lib.sm_excel import SMExcel
 from lib.sm_scrt import SMSecureCrt
 
-
 # ====================
 # Main function
 # ====================
-
 
 def main():
     """Main function of the script"""
 
     ## default settings
     config_file = "config.yaml"  # default settings file
-    dst_file = None
-    src_file = None
+    src_file = None # SecureCRT XML file
+    dst_file = None # Excel file
 
-    ## arguments
+    # arguments
+    # ==========
+    
     if not ARGS.quiet:
         print("Reading arguments...")
 
-    # set and read config file
+    # read config file
+    # if undefined, use 'config.yaml'
     if ARGS.config:
         config_file = set_config_file(ARGS.config.strip(), config_file)
 
@@ -51,11 +52,12 @@ def main():
     if config_data is False:
         return
 
-    # set source excel file
+    # source file (SecureCRT XML)
     if ARGS.source:
         src_file = ARGS.source
 
-    # set destination file
+    # destination file (excel)
+    # if undefined, export to 'export' subfolder
     if ARGS.write != None:
         dst_file = ARGS.write
     else:
@@ -66,7 +68,8 @@ def main():
     if not ARGS.quiet:
         print("Done.")
 
-    ## Read XML and export to XLSX
+    # Read a sessions
+    # ===========
 
     example = 2
 
@@ -110,21 +113,21 @@ def scrt_reader_1(**kwargs):
     if not quiet:
         print("Done.")
 
-    # set sessions
+    # sessions
     if not quiet:
         print("Reading SecureCRT sessions...")
     sm_scrt.set_sessions_dict_from_xml()
     if not quiet:
         print("Done. Imported: %d" % sm_scrt.get_sessions_dict_count())
 
-    # set credentials
+    # credentials
     if not quiet:
         print("Reading SecureCRT credential groups...")
     sm_scrt.set_credentials_dict_from_xml()
     if not quiet:
         print("Done. Imported: %d" % sm_scrt.get_credentials_dict_count())
 
-    # set firewalls
+    # firewalls
     if not quiet:
         print("Reading SecureCRT firewall groups...")
     sm_scrt.set_firewalls_dict_from_xml()
@@ -139,26 +142,26 @@ def scrt_reader_2(**kwargs):
     """
 
     ## parse kwargs
-
     settings = kwargs.get("settings", {})
     src_file = kwargs.get("src_file", "")
     dst_file = kwargs.get("dst_file", "")
     quiet = kwargs.get("quiet", False)
 
-    ## parse XML and prepare dictionaries
+    # parse XML and prepare dictionaries
+    # ==========    
 
     if not quiet:
-        print("Read SecureCRT sessions XML file...")
+        print("Reading SecureCRT sessions XML file...")
 
     sm_scrt = SMSecureCrt(settings=settings, xml_file=src_file, read_xml_file=True)
 
     if sm_scrt.build_dict_from_xml() == False:
         if not quiet:
-            print("Exit")
+            print("No Sessions. Exit")
 
     if not quiet:
         print(
-            "Done. Imported: %d sessions, %d credential groups, %d firewall groups."
+            "Done. %d session(s), %d credential group(s), %d firewall group(s) from XML file."
             % (
                 sm_scrt.get_sessions_dict_count(),
                 sm_scrt.get_credentials_dict_count(),
@@ -166,7 +169,8 @@ def scrt_reader_2(**kwargs):
             )
         )
 
-    ## write to Excel file
+    # Write to Excel file
+    # ==========    
 
     if not quiet:
         print("Writing Excel file...")
@@ -182,11 +186,6 @@ def scrt_reader_2(**kwargs):
 
 
 if __name__ == "__main__":
-
-    # parse args and settings
     ARGS = parse_reader_args()
-
     init_logging(ARGS.verbose)
-
-    # run the main method
     main()

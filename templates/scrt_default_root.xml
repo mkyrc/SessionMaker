@@ -1,5 +1,5 @@
-<!-- default SecureCRT XML template -->
 <?xml version="1.0"?>
+<!-- default SecureCRT XML template -->
 <VanDyke version="3.0">
 	<!-- Sessions -->
 	<key name="Sessions">

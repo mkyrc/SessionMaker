@@ -1,0 +1,109 @@
+{
+    "Connections": [
+        {
+            "ConnectionType": 25,
+            "Group": "tmp",
+            "Name": "tmp"
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\dir1",
+            "Name": "dir1"
+        },
+        {
+            "ConnectionType": 26,
+            "Group": "tmp\\dir1",
+            "Name": "vault1",
+            "CredentialConnectionID": "7b887131-3e46-4a51-b7e0-7df82532316f",
+            "Credentials": {
+                "UserName": "user@$NAME$"
+            }
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\test",
+            "Name": "test"
+        },
+        {
+            "ConnectionType": 77,
+            "Group": "tmp\\test",
+            "Name": "device1",
+            "Terminal": {
+                "Host": "192.168.1.1:22"
+            }
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\customer1",
+            "Name": "customer1"
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\customer1\\cisco",
+            "Name": "cisco"
+        },
+        {
+            "ConnectionType": 77,
+            "Group": "tmp\\customer1\\cisco",
+            "Name": "device2",
+            "Terminal": {
+                "Host": "192.168.1.2:22"
+            }
+        },
+        {
+            "ConnectionType": 77,
+            "Group": "tmp\\customer1\\cisco",
+            "Name": "device3",
+            "Terminal": {
+                "Host": "192.168.1.33:22"
+            }
+        },
+        {
+            "ConnectionType": 77,
+            "Group": "tmp\\customer1\\cisco",
+            "Name": "device3",
+            "Terminal": {
+                "Host": "192.168.1.3:22"
+            }
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\dir1\\dir2",
+            "Name": "dir2"
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\dir1\\dir2\\dir3",
+            "Name": "dir3"
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\dir1\\dir2\\dir3\\dir4",
+            "Name": "dir4"
+        },
+        {
+            "ConnectionType": 77,
+            "Group": "tmp\\dir1\\dir2\\dir3\\dir4",
+            "Name": "device4",
+            "Terminal": {
+                "Host": "192.168.1.4:22"
+            },
+            "CredentialConnectionSavedPath": "tmp\\dir1\\vault1",
+            "CredentialConnectionID": "7b887131-3e46-4a51-b7e0-7df82532316f"
+        },
+        {
+            "ConnectionType": 25,
+            "Group": "tmp\\customer1\\f5",
+            "Name": "f5"
+        },
+        {
+            "ConnectionType": 77,
+            "Group": "tmp\\customer1\\f5",
+            "Name": "device3",
+            "Terminal": {
+                "Host": "192.168.2.1",
+                "Username": "jano"
+            }
+        }
+    ]
+}

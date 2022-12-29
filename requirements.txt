@@ -3,3 +3,4 @@ pyexcel-xlsx
 ruamel.yaml
 jinja2
 xlsxwriter
+uuid

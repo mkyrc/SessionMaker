@@ -1,19 +1,9 @@
 """SecureCRT session generator"""
-
-# helpful:
-# https://www.datacamp.com/tutorial/python-xml-elementtree
-#
-
 import logging
 import xml.etree.ElementTree as ET
 
 from .sm_class import SessionMaker
 from .sm_xml import SMXml
-
-
-# import json
-# from jinja2 import Environment, FileSystemLoader
-
 
 # ========================================
 # Class SMSecureCrt
@@ -41,11 +31,11 @@ class SMSecureCrt(SessionMaker):
         # - self._xml_file
         # - self._xml_obj
         # - self._sessions_dict
+        # - self._credentials_dict
         # - self._xml_session_file
         super().__init__(**kwargs)
 
         # credential groups dict
-        self._credentials_dict = dict()
         self.set_credentials_dict(kwargs.get("credentials", None))
 
         # firewall groups dict
@@ -59,14 +49,42 @@ class SMSecureCrt(SessionMaker):
     # ========================================
     # Public methods
     # ========================================
+    
+    def excel_read_sheet_credentials(self, sheet_name: str) -> dict | list | bool:
+        """Read excel sheet 'scrt-credentials' and return content as dict/array.
 
-    def get_credentials_dict(self):
-        """Return credentials dictionary (ordered dict)."""
-        return self._credentials_dict
+        Args:
+            sheet_name (str): Sheet's name
 
-    def get_credentials_dict_count(self):
-        """Return credentials dictionary size (int)."""
-        return len(self._credentials_dict["credential"])
+        Returns:
+            ordered dict: Column/Row-based dictionary (when get=['column', 'row']
+            False: In case of error
+        """
+        credentials_dict = self.excel_read_sheet(sheet_name, "column")
+        credentials_dict = self.col_name_normalize(
+            credentials_dict, self._settings["excel"]["col_names_scrt_credentials"]
+        )
+        self.set_credentials_dict(credentials_dict)
+
+        return self._credentials_dict    
+    
+    def excel_read_sheet_firewalls(self, sheet_name: str) -> dict | list | bool:
+        """Read excel sheet 'scrt-firewalls' and return content as dict/array.
+
+        Args:
+            sheet_name (str): Sheet's name
+
+        Returns:
+            ordered dict: Column/Row-based dictionary (when get=['column', 'row']
+            False: In case of error
+        """
+        firewalls_dict = self.excel_read_sheet(sheet_name, "column")
+        firewalls_dict = self.col_name_normalize(
+            firewalls_dict, self._settings["excel"]["col_names_scrt_firewalls"]
+        )
+        self.set_firewalls_dict(firewalls_dict)
+
+        return self._credentials_dict      
 
     def get_firewalls_dict(self):
         """Return firewall groups dictionary (ordered dict)."""
@@ -82,15 +100,16 @@ class SMSecureCrt(SessionMaker):
         Args:
             credentials (dict): Ordered dict.
         """
-        col_name = self._settings["excel"]["col_names_credentials"]
-        # keys = ["credential", "username"]
+        col_name = self._settings["excel"]["col_names_scrt_credentials"]
+        # keys = ["scrt-credential", "scrt-username"]
 
         if credentials is None:
             for key in col_name:
                 self._credentials_dict[key] = []
         else:
             for key in col_name:
-                self._credentials_dict[key] = list(map(str, credentials[col_name[key]]))
+                # self._credentials_dict[key] = list(map(str, credentials[col_name[key]]))
+                self._credentials_dict[key] = list(map(str, credentials[key]))
 
     def set_firewalls_dict(self, firewalls=None):
         """Set (SecureCRT specific fields) credentials dictionary. If not set, initiate it.
@@ -98,7 +117,7 @@ class SMSecureCrt(SessionMaker):
         Args:
             firewalls (dict): Ordered dict.
         """
-        col_name = self._settings["excel"]["col_names_firewalls"]
+        col_name = self._settings["excel"]["col_names_scrt_firewalls"]
         # keys = ["firewall", "address", "port", "username"]
 
         if firewalls is None:
@@ -106,7 +125,8 @@ class SMSecureCrt(SessionMaker):
                 self._firewalls_dict[key] = []
         else:
             for key in col_name:
-                self._firewalls_dict[key] = list(map(str, firewalls[col_name[key]]))
+                # self._firewalls_dict[key] = list(map(str, firewalls[col_name[key]]))
+                self._firewalls_dict[key] = list(map(str, firewalls[key]))
 
     def set_sessions_dict(self, sessions=None):
         """Set (SecureCRT specific fields) session dictionary. If not set, initiate it.
@@ -116,17 +136,18 @@ class SMSecureCrt(SessionMaker):
         """
         super().set_sessions_dict(sessions)
 
-        col_name = self._settings["excel"]["col_names_sessions"]
-        keys = ["credential", "colorscheme", "keywords", "firewall"]
+        excel_col_name = self._settings["excel"]["col_names_sessions"]
+        keys = ["scrt-credential", "scrt-colorscheme", "scrt-keywords", "scrt-firewall"]
 
         if sessions is None or len(sessions) == 0:
-            for key in col_name:
+            for key in excel_col_name:
                 if key in keys:
                     self._sessions_dict[key] = []
         else:
-            for key in col_name:
+            for key in excel_col_name:
                 if key in keys:
-                    self._sessions_dict[key] = list(map(str, sessions[col_name[key]]))
+                    # self._sessions_dict[key] = list(map(str, sessions[col_name[key]]))
+                    self._sessions_dict[key] = list(map(str, sessions[key]))
 
     # ====================
     # Prepare XML to ordered dict (From XML to Excel)
@@ -236,19 +257,19 @@ class SMSecureCrt(SessionMaker):
 
                 for sub_et in child.findall("./*/[@name='Credential Title']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["credential"].insert(idx, text)
+                    self._sessions_dict["scrt-credential"].insert(idx, text)
 
                 for sub_et in child.findall("./*/[@name='Keyword Set']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["keywords"].insert(idx, text)
+                    self._sessions_dict["scrt-keywords"].insert(idx, text)
 
                 for sub_et in child.findall("./*/[@name='Color Scheme']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["colorscheme"].insert(idx, text)
+                    self._sessions_dict["scrt-colorscheme"].insert(idx, text)
 
                 for sub_et in child.findall("./*/[@name='Firewall Name']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["firewall"].insert(idx, text)
+                    self._sessions_dict["scrt-firewall"].insert(idx, text)
 
             self.__set_sessions_dict_from_xml(child, folder)
 
@@ -365,6 +386,14 @@ class SMSecureCrt(SessionMaker):
         return self._sessions_dict
 
     def write_excel(self, **kwargs):
+        """Write credentials, sessions and firewalls to Excel file
+
+        Args:
+            excel_file (str, default: self.excel_file): Excel file to write content
+            credentials_dict (str, default: self._credentials_dict): Credentials dict to write content
+            sessions_dict (str, default: self._sessions_dict): Sessions dict to write content
+            firewalls_dict (str, default: self._firewalls_dict): Firewalls dict to write content
+        """
 
         excel_file = str(kwargs.get("excel_file", self.excel_file))
         credentials_dict = kwargs.get("credentials_dict", self._credentials_dict)
@@ -374,39 +403,9 @@ class SMSecureCrt(SessionMaker):
         self._excel_obj.write_excel_book(
             excel_file=excel_file,
             sessions_dict=sessions_dict,
-            credentials_dict=credentials_dict,
-            firewalls_dict=firewalls_dict,
+            scrt_credentials_dict=credentials_dict,
+            scrt_firewalls_dict=firewalls_dict,            
         )
-
-    # def _session_folder_xml_to_array(self, session_root, folder=[], sessions_list=[]):
-    #     """Return session folder from iterrable XML object."""
-
-    #     print("=====")
-    #     print("getting root key:", session_root.tag, session_root.attrib)
-    #     print("folder:", "/".join(folder))
-
-    #     key = ET.Element
-    #     parent = session_root
-    #     for key in session_root.findall("key"):
-
-    #         if len(key.findall("key")) > 1:
-    #             # this is NOT last key ('session key')
-    #             print(key.tag, key.attrib)
-    #             # root_folder['folder'].append(
-    #             folder.append(key.attrib["name"])
-    #             # sessions_list = session_root.findall("key")
-    #             return self._session_folder_xml_to_array(key, folder, sessions_list)
-    #         else:
-    #             # this is 'session key'
-    #             print("session key:", key.tag, key.attrib)
-    #             sessions_list = session_root.findall("key")
-    #             # return sessions_list, folder
-    #             # return self._session_folder_xml_to_array(key, folder, sessions_list)
-
-    #     return
-    #     # return self._session_folder_xml_to_array(parent, folder, sessions_list)
-
-    #     # return [key], folder
 
     # ====================
     # Prepare XML from ordered dicts (from Excel to XML)
@@ -414,15 +413,19 @@ class SMSecureCrt(SessionMaker):
 
     ### private methods
 
-    def __credentials_dict_to_xml(self):
-        """Return credentials hierarchy as Element object"""
+    def __credentials_dict_to_xml(self) -> ET.Element:
+        """Read self._credentials_dict and return credentials hierarchy as XML object.
+
+        Returns:
+            (ET.Element): XML object for credentials
+        """
         ret_xml = ET.Element("CREDENTIALS")
         if not self._credentials_dict:
             return ret_xml
 
         for idx, credential_row in enumerate(self._credentials_dict["credential"]):
-            # get credential data in XML format
-            credential_xml = self.__xml_get_credential(
+            # build credentials data in XML format
+            credential_xml = self.__xml_build_credential(
                 xml_tpl_credential=self.__xml_tpl_get_credential(),
                 credential=self._credentials_dict["credential"][idx],
                 username=self._credentials_dict["username"][idx],
@@ -434,15 +437,19 @@ class SMSecureCrt(SessionMaker):
 
         return ret_xml
 
-    def __firewalls_dict_to_xml(self):
-        """Return firewalls hierarchy as Element object"""
+    def __firewalls_dict_to_xml(self) -> ET.Element:
+        """Read self._firewalls_dict and return firewalls hierarchy as XML object.
+
+        Returns:
+            (ET.Element): XML object for firewalls
+        """
         ret_xml = ET.Element("FIREWALLS")
         if not self._firewalls_dict:
             return ret_xml
 
         for idx, firewall_row in enumerate(self._firewalls_dict["firewall"]):
-            # get credential data in XML format
-            firewall_xml = self.__xml_get_firewall(
+            # build firewalls data in XML format
+            firewall_xml = self.__xml_build_firewall(
                 xml_tpl_firewall=self.__xml_tpl_get_firewall(),
                 firewall=self._firewalls_dict["firewall"][idx],
                 address=self._firewalls_dict["address"][idx],
@@ -457,8 +464,11 @@ class SMSecureCrt(SessionMaker):
         return ret_xml
 
     def __sessions_dict_to_xml(self) -> ET.Element:
-        """Return sessions hierarchy as Element object"""
+        """Read self._sessions_dict and return firewalls hierarchy as XML object.
 
+        Returns:
+            (ET.Element): XML object for sessions
+        """
         # root object for return
         ret_xml = ET.Element("SESSION")
 
@@ -481,10 +491,10 @@ class SMSecureCrt(SessionMaker):
                 hostname=self._sessions_dict["hostname"][idx],
                 port=self._sessions_dict["port"][idx],
                 username=self._sessions_dict["username"][idx],
-                credential=self._sessions_dict["credential"][idx],
-                colorscheme=self._sessions_dict["username"][idx],
-                keywords=self._sessions_dict["keywords"][idx],
-                firewall=self._sessions_dict["firewall"][idx],
+                credential=self._sessions_dict["scrt-credential"][idx],
+                colorscheme=self._sessions_dict["scrt-colorscheme"][idx],
+                keywords=self._sessions_dict["scrt-keywords"][idx],
+                firewall=self._sessions_dict["scrt-firewall"][idx],
             )
 
             # add session XML to folder path XML
@@ -507,8 +517,38 @@ class SMSecureCrt(SessionMaker):
 
         return ret_xml
 
+    def __xml_build_credential(self, **kwargs) -> ET.Element:
+        """Read XML credential template and set XML object based on arguments.
+
+        Args:
+            xml_tpl_credential (str): XML template file for credential
+            credential (str): Credential group name
+            username (str): Firewall user name
+
+        Returns:
+            (ET.Element): Credential group XML object
+        """
+        # set XML root Element
+        # from template XML file if exists, else create new
+        credential_root = kwargs.get("xml_tpl_credential", ET.Element("key"))
+
+        # credential parameters
+        par_username = kwargs.get("username", "")
+        par_credential = kwargs.get("credential", "")
+
+        ### create XML object ###
+        # modify credential group name
+        credential_root.set("name", par_credential)
+
+        # set credential parameters (find and modify/replace)
+        if par_username:
+            for sub_et in credential_root.findall("./*/[@name='Username']"):
+                sub_et.text = par_username
+
+        return credential_root
+
     def __xml_build_folder_path(self, key_list: list) -> ET.Element:
-        """Return SecureCRT folder structure as ET.Element
+        """Return SecureCRT folder structure (recursively) as ET.Element.
 
         Args:
             key_list (list): Folder path as a list
@@ -526,36 +566,19 @@ class SMSecureCrt(SessionMaker):
 
         return folder_root
 
-    def __xml_get_credential(self, **kwargs):
-        """Set and return credential parameters for XML object"""
+    def __xml_build_firewall(self, **kwargs) -> ET.Element:
+        """Read XML firewall template and set XML object based on arguments.
 
-        # set XML root Element
-        # from template XML file if exists, else create new
-        if kwargs["xml_tpl_credential"]:
-            # set Element root from xml template file
-            credential_root = kwargs["xml_tpl_credential"]
-        else:
-            # if not exists, create simple "key" root Element
-            credential_root = ET.Element("key")
+        Args:
+            xml_tpl_firewall (str): XML template file for firewall
+            firewall (str): Firewall group name
+            address (str): Firewall address
+            port (str): Firewall port
+            username (str): Firewall user name
 
-        # credential parameters
-        par_username = kwargs.get("username", "")
-        par_credential = kwargs.get("credential", "")
-
-        ### create XML object ###
-        # modify credential group name
-        credential_root.set("name", par_credential)
-
-        # set credential parameters (find and modify/replace)
-        if par_username:
-            for sub_et in credential_root.findall("./*/[@name='Username']"):
-                sub_et.text = par_username
-
-        return credential_root
-
-    def __xml_get_firewall(self, **kwargs):
-        """Set and return firewall parameters for XML object"""
-
+        Returns:
+            (ET.Element): Firewall group XML object
+        """
         # set XML root Element
         # from template XML file if exists, else create new
         firewall_root = kwargs.get("xml_tpl_firewall", ET.Element("key"))
@@ -588,16 +611,25 @@ class SMSecureCrt(SessionMaker):
         return firewall_root
 
     def __xml_get_session(self, **kwargs) -> ET.Element:
-        """Set and return session parameters for XML object"""
+        """Read XML session template and set XML object based on arguments.
 
+        Args:
+            xml_tpl_session (str): XML template file for session
+            session (str): Session name
+            address (str): Session address
+            port (str, default: "22"): Session port
+            username (str): Session user name
+            credential (str): Credential group
+            keyword (str): Keyword name
+            colorscheme (str): Colorscheme name
+            firewall (str): Firewall group name (or path to other session)
+
+        Returns:
+            (ET.Element): Session XML object
+        """
         # set XML root Element
         # use XML file template if exists, else create new
-        if kwargs["xml_tpl_session"]:
-            # set Element root from xml template file
-            session_root = kwargs["xml_tpl_session"]
-        else:
-            # if not exists, create new simple "key" root Element
-            session_root = ET.Element("key")
+        session_root = kwargs.get("xml_tpl_session", ET.Element("key"))
 
         # session parameters
         par_session = kwargs.get("session", "default-session")
@@ -650,8 +682,8 @@ class SMSecureCrt(SessionMaker):
 
         return session_root
 
-    def __xml_merge_sessions_folder_path(self, parent_element):
-        """Normalize folder path structure.
+    def __xml_merge_sessions_folder_path(self, parent_element) -> ET.Element:
+        """Normalize folder path structure (remove duplicities).
 
         Read sessions folder/path in a loop and merge the same paths to one sub folder.
 
@@ -661,7 +693,6 @@ class SMSecureCrt(SessionMaker):
         Return:
             (ET.Element)
         """
-
         # get all childrens
         child_list = parent_element.findall("./key")
         new_child = []
@@ -718,7 +749,6 @@ class SMSecureCrt(SessionMaker):
         Returns:
             (ET.Element): XML content of sessions for importing to SecureCRT.
         """
-
         # read default base(root) XML file structure
         base_root = self.__xml_tpl_get_root()
 

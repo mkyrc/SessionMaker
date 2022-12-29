@@ -2,9 +2,11 @@
 # Excel settings
 # ==========
 excel:
+  # tab names
   tab_sessions: sessions
-  tab_credentials: credentials
-  tab_firewalls: firewalls
+  tab_scrt_credentials: scrt-credentials
+  tab_scrt_firewalls: scrt-firewalls
+  tab_rdm_credentials: rdm-credentials
 
   # column names for 'sessions' tab
   col_names_sessions:
@@ -15,22 +17,31 @@ excel:
     port: port
     username: username
 
-    # SecureCRT values:
-    credential: credential group
-    colorscheme: colorscheme
-    keywords: keywords
-    firewall: firewall group
+    # Devolutions RDM values:
+    rdm-credential: rdm credential
 
-  # column names for 'credentials group' tab
-  col_names_credentials:
+    # SecureCRT values:
+    scrt-credential: credential group
+    scrt-colorscheme: colorscheme
+    scrt-keywords: keywords
+    scrt-firewall: firewall group
+
+  # SCRT: column names for 'scrt-credentials' tab
+  col_names_scrt_credentials:
     credential: credential group
     username: username
 
-  # column names for 'firewalls group' tab
-  col_names_firewalls:
+  # SCRT: column names for 'scrt-firewalls' tab
+  col_names_scrt_firewalls:
     firewall: firewall group
     address: address
     port: port
+    username: username
+
+  # RDM: column names for 'rdm-vaults' tab
+  col_names_rdm_credentials:
+    folder: folder
+    credential: credential name
     username: username
 
 # ==========

@@ -29,14 +29,21 @@
 
 ## Description
 
-Excel workbook to SecureCRT sessions (and vice-versa) converter. There are two parts:
+Excel workbook to SecureCRT and Devolutions RDM sessions (and vice-versa) converter. There are two parts:
 
-- [**Session Maker**](#session-maker) - Generate SecureCRT XML file from Excel book source (Excel -> XML)
+- [**Session Maker**](#session-maker) - Generate SecureCRT XML or Devolutions RDM JSON file from Excel book source (Excel -> XML/JSON)
 - [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT XML sessions export file (XML -> Excel)
 
 ## Session Maker
 
-Reads Excel workbook and generate XML session content for SecureCRT.
+Reads Excel workbook and generate SecureCRT sessions content (XML) or Devolutions RDM connections (JSON).
+
+```mermaid
+graph LR;
+    Excel["Excel (xlsx)"]-->SM("Session Maker")
+    SM-->scrt["SecureCRT (xml)"]
+    SM-->rdm["DevolutionsRDM (json)"];
+```
 
 ### Usage
 
@@ -46,7 +53,7 @@ It is simple - read help :).
 $ python3 session_maker.py -h
 usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm}] [--write DESTINATION | -p] [-q | -v] source
 
-Read Excel file (source) and generate sessions XML file for SecureCRT.
+Read Excel file (source) and generate sessions XML file for [SecureCRT|Devolutions].
 
 positional arguments:
   source                Source (XLS) file
@@ -60,7 +67,6 @@ options:
   -p, --print           Print to screen only (don't write it to the file).
   -q, --quiet           Quiet output.
   -v, --verbose         Verbose output. (use: -v, -vv)
-
 ```
 
 XML content can be exported to:
@@ -105,6 +111,12 @@ devices.xml
 
 Reads SecureCRT sessions file (SecureCRT menu: `Tools -> Export settings...`) and export it to Excel workbook.
 
+```mermaid
+graph LR;
+    scrt["SecureCRT (XML)"]-->SR("Session Reader")
+    SR-->Excel["Excel (xlsx)"]
+    
+```
 ### Usage
 
 ```
@@ -123,7 +135,6 @@ options:
                         Write to destination Excel (xlsx) file. If not defined, write to the 'export' subfolder.
   -q, --quiet           Quiet output.
   -v, --verbose         Verbose output (use: -v, -vv).
-
 ```
 
 If `--write` option is not defined, destination file is exported to `export` subfolder.
@@ -267,7 +278,6 @@ excel:
     credential: credential name
     username: username
 ```
-
 
 ### SecureCRT XML templates configuartion
 

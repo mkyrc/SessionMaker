@@ -38,11 +38,12 @@ There are two parts:
 - [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT XML sessions export file (XML -> Excel)
 
 Supported features:
-* Folders (paths to session)
-* SSH sessions only
-* Username and/or Credentials (SecureCRT, Devolutions RDM)
-* Firewall groups (SecureCRT)
-* Colorscheme and keywords to session (SecureCRT)
+
+- Folders (paths to session)
+- SSH sessions only
+- Username and/or Credentials (SecureCRT, Devolutions RDM)
+- Firewall groups (SecureCRT)
+- Colorscheme and keywords to session (SecureCRT)
 
 > **Important:**<br>
 > Session Reader or Session Maker never works with sensitive data (e.g. passwords)! There is possible define only usernames (including credentials).
@@ -89,6 +90,9 @@ XML content can be exported to:
 
 ### Example
 
+<details>
+  <summary>Show example</summary>
+
 **Source file**
 
 Excel (source) file:
@@ -119,6 +123,8 @@ XML file is exported to `export` subfolder (because option `--write` or `--print
 $ ls data/EXAMPLE/export/
 devices.xml
 ```
+
+</details>
 
 ## Session Reader
 
@@ -155,6 +161,9 @@ If `--write` option is not defined, destination file is exported to `export` sub
 
 ### Example
 
+<details>
+  <summary>Show example</summary>
+
 **Source file**
 
 SecureCRT (source) file (it is previously generated Excel file):
@@ -186,15 +195,16 @@ Excel workbook is exported to `export` subfolder (because option `--write` is no
 $ ls data/EXAMPLE/export/export/
 devices.xlsx
 ```
+</details>
 
 ## Excel workbook structure
 
 Excel workbook contains 4 worksheets:
 
-- **sessions**: list of device sessions
-- **rdm-credentials**: Devolutions RDM credentials list
-- **scrt-credentials**: SecureCRT credential groups list
-- **scrt-firewalls**: SecureCRT firewall groups list
+- **[sessions](#sessions-worksheet-columns)**: list of device sessions
+- **[rdm-credentials](#rdm-credentials-worksheet-columns)**: Devolutions RDM credentials list
+- **[scrt-credentials](#scrt-credentials-worksheet-columns)**: SecureCRT credential groups list
+- **[scrt-firewalls](#scrt-firewalls-worksheet-columns)**: SecureCRT firewall groups list
 
 > **Note:** <br>
 > All column names described below can be changed in `config.yaml` file.

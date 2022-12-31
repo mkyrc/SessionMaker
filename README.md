@@ -23,16 +23,29 @@
     - ['rdm-credentials' worksheet columns](#rdm-credentials-worksheet-columns)
     - ['scrt-credentials' worksheet columns](#scrt-credentials-worksheet-columns)
     - ['scrt-firewalls' worksheet columns](#scrt-firewalls-worksheet-columns)
-  - [Configuration (config.yaml)](#configuration-configyaml)
-    - [Excel worksheets configuartion](#excel-worksheets-configuartion)
-    - [SecureCRT XML templates configuartion](#securecrt-xml-templates-configuartion)
+  - [Configuration](#configuration)
+  - [Versioning](#versioning)
+  - [Authors](#authors)
+  - [License](#license)
 
 ## Description
 
-Excel workbook to SecureCRT and Devolutions RDM sessions (and vice-versa) converter. There are two parts:
+Excel workbook to SecureCRT and/or Devolutions RDM sessions (and vice-versa) converter. The goal of the project is to make life easier for network engineers ;).
+
+There are two parts:
 
 - [**Session Maker**](#session-maker) - Generate SecureCRT XML or Devolutions RDM JSON file from Excel book source (Excel -> XML/JSON)
 - [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT XML sessions export file (XML -> Excel)
+
+Supported features:
+* Folders (paths to session)
+* SSH sessions only
+* Username and/or Credentials (SecureCRT, Devolutions RDM)
+* Firewall groups (SecureCRT)
+* Colorscheme and keywords to session (SecureCRT)
+
+> **Important:**<br>
+> Session Reader or Session Maker never works with sensitive data (e.g. passwords)! There is possible define only usernames (including credentials).
 
 ## Session Maker
 
@@ -115,8 +128,9 @@ Reads SecureCRT sessions file (SecureCRT menu: `Tools -> Export settings...`) an
 graph LR;
     scrt["SecureCRT (XML)"]-->SR("Session Reader")
     SR-->Excel["Excel (xlsx)"]
-    
+
 ```
+
 ### Usage
 
 ```
@@ -224,74 +238,18 @@ Excel workbook contains 4 worksheets:
 | port           |          |         | TCP port               |
 | username       |          |         | Username               |
 
-## Configuration (config.yaml)
+## Configuration
 
-Excel worksheets and column names are defined in `config.yaml` configuration file.
+Excel worksheet names, column names and SecureCRT custom settings (not configurable by Session Maker) are configurable. For more detials see [config.yaml](config.yaml) file.
 
-### Excel worksheets configuartion
+## Versioning
 
-Default settings for Excel part:
+This project use [SemVer](http://semver.org/) for versioning. For the versions available, see the tags on main repository.
 
-```yaml
-# ==========
-# Excel settings
-# ==========
-excel:
-  # tab names
-  tab_sessions: sessions
-  tab_rdm_credentials: rdm-credentials
-  tab_scrt_credentials: scrt-credentials
-  tab_scrt_firewalls: scrt-firewalls
+## Authors
 
-  # column names for 'sessions' tab
-  col_names_sessions:
-    folder: folder
-    session: session
-    hostname: hostname
-    port: port
-    username: username
+- **Martin Kyrc** - 2022 - [@mkyrc](https://github.com/mkyrc) on Github
 
-    # Devolutions RDM values:
-    rdm-credential: rdm credential
+## License
 
-    # SecureCRT values:
-    scrt-credential: credential group
-    scrt-colorscheme: colorscheme
-    scrt-keywords: keywords
-    scrt-firewall: firewall group
-
-  # SCRT: column names for 'scrt-credentials' tab
-  col_names_scrt_credentials:
-    credential: credential group
-    username: username
-
-  # SCRT: column names for 'scrt-firewalls' tab
-  col_names_scrt_firewalls:
-    firewall: firewall group
-    address: address
-    port: port
-    username: username
-
-  # RDM: column names for 'rdm-vaults' tab
-  col_names_rdm_credentials:
-    folder: folder
-    credential: credential name
-    username: username
-```
-
-### SecureCRT XML templates configuartion
-
-List of XML templates for SecureCRT with settings that is not possible change by SessionMaker.
-
-```yaml
-# ==========
-# SecureCRT settings
-# ==========
-scrt:
-  # default XML template with (default) session settings
-  template:
-    root: templates/scrt_default_root.xml
-    session: templates/scrt_default_session.xml
-    credential: templates/scrt_default_credential.xml
-    firewall: templates/scrt_default_firewall.xml
-```
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.

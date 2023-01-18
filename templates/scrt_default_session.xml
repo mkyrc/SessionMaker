@@ -10,7 +10,7 @@
 	<string name="Firewall Name"></string>
 
 	<!-- default settings -->
-	<string name="SSH2 Authentications V2">keyboard-interactive</string>
+	<string name="SSH2 Authentications V2">keyboard-interactive,password</string>
 	<string name="Cipher List">aes256-ctr,aes256-cbc</string>
 	<dword name="Highlight Bold">0</dword>
 	<dword name="Highlight Color">1</dword>

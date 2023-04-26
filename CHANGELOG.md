@@ -6,6 +6,7 @@
 
 ### Fixed
 - SecureCRT sessions export (Excel -> SecureCRT): SSH Authentications changed from 'keyboard-interactive' only to 'keyboard-interactive,password'
+
 ## 0.2.1 (2022-12-31)
 
 ### Other

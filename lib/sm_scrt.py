@@ -637,7 +637,7 @@ class SMSecureCrt(SessionMaker):
         par_port = kwargs.get("port", "22")
         par_username = kwargs.get("username", "")
         par_credential = kwargs.get("credential", "")
-        par_keyword = kwargs.get("keyword", "")
+        par_keyword = kwargs.get("keywords", "")
         par_colorscheme = kwargs.get("colorscheme", "")
         par_firewall = kwargs.get("firewall", "")
 

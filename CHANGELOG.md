@@ -2,6 +2,11 @@
 # Changelog
 <!-- https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.2.3 (2023-04-27)
+
+### Fixed
+- SecureCRT sessions export (Excel -> SecureCRT): Keyword list from Excel is now inserted to SecureCRT XML file correctly
+- Devolutions RDM (Excel->RDM): SSH session port number is now inserted into JSON RDM file as correct attribute
 ## 0.2.2 (2022-01-18)
 
 ### Fixed

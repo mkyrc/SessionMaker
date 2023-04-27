@@ -382,7 +382,8 @@ class SMDevolutionsRdm(SessionMaker):
         if port == "":
             conn_obj["Terminal"]["Host"] = hostname
         else:
-            conn_obj["Terminal"]["Host"] = hostname + ":" + port
+            conn_obj["Terminal"]["Host"] = hostname
+            conn_obj["Terminal"]["HostPort"] = port
 
         # username
         if username != "":

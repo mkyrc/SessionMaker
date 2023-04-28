@@ -2,6 +2,11 @@
 # Changelog
 <!-- https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.2.4 (2023-04-28)
+
+### Fixed
+- Devolutions RDM (Credentials): Credentials (ConnectionType 26) 'ID' added. Interconnect between SSH Session (Type 77) and Credentials (Type 26) corrected.
+  
 ## 0.2.3 (2023-04-27)
 
 ### Fixed

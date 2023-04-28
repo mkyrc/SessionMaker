@@ -417,7 +417,8 @@ class SMDevolutionsRdm(SessionMaker):
                 and conn_obj["Name"] == conn_path_list[-1]
             ):
                 if conn_obj["ConnectionType"] == 26:
-                    return conn_obj["CredentialConnectionID"]
+                    # return conn_obj["CredentialConnectionID"]
+                    return conn_obj["ID"]
 
     def __build_rdm_connection_credential(self, **kwargs):
         """Set RDM Credential (type 26)
@@ -434,7 +435,7 @@ class SMDevolutionsRdm(SessionMaker):
         self.__build_rdm_connection_folder(folder=folder)
         credential = kwargs.get("credential", "")
         username = kwargs.get("username", "")
-        id = str(uuid.uuid4())
+        # id = str(uuid.uuid4())
 
         if credential == "":
             logging.warning("Credential without name. Skipping.")
@@ -444,7 +445,8 @@ class SMDevolutionsRdm(SessionMaker):
         conn_obj["ConnectionType"] = 26
         conn_obj["Group"] = folder
         conn_obj["Name"] = credential
-        conn_obj["CredentialConnectionID"] = id
+        conn_obj["CredentialConnectionID"] = str(uuid.uuid4())
+        conn_obj["ID"] = str(uuid.uuid4())
         conn_obj["Credentials"] = dict()
         if username != "":
             conn_obj["Credentials"]["UserName"] = username

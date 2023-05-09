@@ -2,6 +2,21 @@
 # Changelog
 <!-- https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.3.0-rc1 (2023-05-08)
+
+### Added
+- RDP support for Devolutions RDM (Excel->RDM). SecureCRT is not supported because it has poor support of the RDP protocol.
+- WEB support for Devolutions RDM (Excel->RDM). SecureCRT has no support for web-based sessions.
+  
+### Changed
+- Column names in Excel are changed (for details see [README.md](README.md) file or [config.yaml](config.yaml)).
+- Worksheets and/or column names for unused settings is not required.
+
+### Fixed
+- Missing worksheet in Excel file is skipped with warning message.
+- Missing optional column in Excel file is skipped with warning message.
+- Missing required column in Excel file stop processing with error message.
+  
 ## 0.2.4 (2023-04-28)
 
 ### Fixed

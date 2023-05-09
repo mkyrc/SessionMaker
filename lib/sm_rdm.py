@@ -67,13 +67,18 @@ class SMDevolutionsRdm(SessionMaker):
             ordered dict: Column/Row-based dictionary (when get=['column', 'row']
             False: In case of error
         """
-        credentials_dict = self.excel_read_sheet(sheet_name, "column")
-        credentials_dict = self.col_name_normalize(
-            credentials_dict, self._settings["excel"]["col_names_rdm_credentials"]
-        )
-        self.set_credentials_dict(credentials_dict)
-
-        return self._credentials_dict
+        credentials_dict_ret = self.excel_read_sheet(sheet_name, "column")
+        if credentials_dict_ret == False:
+            credentials_dict = None
+        else:
+            credentials_dict = self.col_name_normalize(
+                credentials_dict_ret,
+                self._settings["excel"]["col_names_rdm_credentials"],
+            )
+        if self.set_credentials_dict(credentials_dict) == False:
+            return False
+        else:
+            return self._credentials_dict
 
     def set_credentials_dict(self, credentials=None):
         """Set credentials dictionary. If not set, create empty.
@@ -81,16 +86,36 @@ class SMDevolutionsRdm(SessionMaker):
         Args:
             credentials (dict): Ordered dict of RDM credentials.
         """
-        col_name = self._settings["excel"]["col_names_rdm_credentials"]
-        # keys = ["folder", "credential", "username"]
+        excel_col_name = self._settings["excel"]["col_names_rdm_credentials"]
+        keys = ["folder", "credential", "username"]
+        required_keys = ["credential"]
 
         if credentials is None:
-            for key in col_name:
+            for key in excel_col_name:
                 self._credentials_dict[key] = []
         else:
-            for key in col_name:
-                # self._credentials_dict[key] = list(map(str, credentials[col_name[key]]))
-                self._credentials_dict[key] = list(map(str, credentials[key]))
+            for key in excel_col_name:
+                if key in keys:
+                    try:
+                        self._credentials_dict[key] = list(map(str, credentials[key]))
+                    except KeyError:
+                        logging.warning(
+                            "Missing column name '%s' (key: '%s').",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+                        else:
+                            logging.warning(
+                                "Creating empty column name '%s'.", excel_col_name[key]
+                            )
+                            self._credentials_dict[key] = [""] * len(
+                                credentials["credential"]
+                            )
 
     def set_json_file(self, json_file: str, read_json_file=False):
         """Set JSON file attribute. If read_json_file is True, read content.
@@ -106,16 +131,20 @@ class SMDevolutionsRdm(SessionMaker):
         #     self.parse_xml_file()
 
     def set_sessions_dict(self, sessions=None):
-        """Set (SecureCRT specific fields) session dictionary. If not set, initiate it.
+        """Set (Devolutions RDM specific fields) session dictionary. If not set, initiate it.
 
         Args:
             sessions (dict): sessions dictionary
+
+        Return:
+            False in case of error (missing required column)
         """
-        super().set_sessions_dict(sessions)
+        if super().set_sessions_dict(sessions) == False:
+            return False
 
         excel_col_name = self._settings["excel"]["col_names_sessions"]
-        # keys = ["rdm-credential", "credential", "colorscheme", "keywords", "firewall"]
-        keys = ["rdm-credential"]
+        keys = ["rdm-credential", "rdm_web_form", "rdm_web_login", "rdm_web_passwd"]
+        required_keys = []
 
         if sessions is None or len(sessions) == 0:
             for key in excel_col_name:
@@ -124,8 +153,24 @@ class SMDevolutionsRdm(SessionMaker):
         else:
             for key in excel_col_name:
                 if key in keys:
-                    # self._sessions_dict[key] = list(map(str, sessions[excel_col_name[key]]))
-                    self._sessions_dict[key] = list(map(str, sessions[key]))
+                    try:
+                        self._sessions_dict[key] = list(map(str, sessions[key]))
+                    except KeyError:
+                        logging.warning(
+                            "Missing column name '%s' (key: '%s').",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+                        else:
+                            logging.warning(
+                                "Creating empty column name '%s'.", excel_col_name[key]
+                            )
+                            self._sessions_dict[key] = [""] * len(sessions["session"])
 
     # ====================
     # Prepare XML to ordered dict (From XML to Excel)
@@ -139,7 +184,6 @@ class SMDevolutionsRdm(SessionMaker):
         # walk through all "key tags" and read folders and sessions
         idx = 0
         for child in root.iterfind("key"):
-
             # set session parameters from XML content
 
             self._credentials_dict["credential"].insert(idx, child.attrib["name"])
@@ -162,7 +206,6 @@ class SMDevolutionsRdm(SessionMaker):
 
         # walk through all "key tags" and read folders and sessions
         for child in root.iterfind("key"):
-
             # get correct folder path
             while len(folder) > 0 and root.attrib["name"] != folder[len(folder) - 1]:
                 if len(folder) > 1:
@@ -297,7 +340,6 @@ class SMDevolutionsRdm(SessionMaker):
         return self._sessions_dict
 
     def write_excel(self, **kwargs):
-
         excel_file = str(kwargs.get("excel_file", self.excel_file))
         credentials_dict = kwargs.get("credentials_dict", self._credentials_dict)
         sessions_dict = kwargs.get("sessions_dict", self._sessions_dict)
@@ -348,6 +390,68 @@ class SMDevolutionsRdm(SessionMaker):
         #  append folder dict to self.__rdm_connection_list
         self.__rdm_connection_list.append(conn_obj)
 
+    def __build_rdm_connection_rdp_session(self, **kwargs):
+        """Set RDM RDP session (type 1)
+
+        Check if RDP session not exists in self.__rdm_connection_list and add it.
+
+        Args:
+            folder (str, optional, default=""): folder path
+            session (str): RDP session name
+            hostname (str, optional, default: ""): hostname/IP
+            port (str, optional, default: "3389"): port
+            alternate_shell (str, optional, default: ""): alternate shell (command executed on connection)
+        """
+
+        # TODO
+
+        # arguments
+        folder = kwargs.get("folder", "")
+        self.__build_rdm_connection_folder(folder=folder)
+        session = kwargs.get("session", "")
+        hostname = kwargs.get("hostname", "")
+        port = kwargs.get("port", "3389")
+        username = kwargs.get("username", "")
+        credential = kwargs.get("credential", "")
+        credential = credential.replace("/", "\\")
+        # credential_uuid = self.get_credential()
+        alternate_shell = kwargs.get("alternate_shell", "")
+
+        if session == "":
+            logging.warning("Session without name. Skipping.")
+            return
+
+        conn_obj = dict()
+        conn_obj["ConnectionType"] = 1
+        conn_obj["Group"] = folder
+        conn_obj["Name"] = session
+        conn_obj["Terminal"] = dict()
+        conn_obj["Url"] = hostname
+        conn_obj["Port"] = port
+        if alternate_shell != "":
+            conn_obj["AlternateShell"] = alternate_shell
+        conn_obj["RDP"] = {}
+        conn_obj["RDP"]["NetworkLevelAuthentication"] = "false"
+        conn_obj["AuthentificationLevel"] = 2
+        conn_obj["OpenEmbedded"] = True
+
+        # username
+        if username != "":
+            conn_obj["RDP"]["Username"] = username
+            conn_obj["PromptCredentials"] = "true"
+
+        # credential
+        if username == "" and credential != "":
+            conn_obj["CredentialConnectionSavedPath"] = credential
+            credential_uuid = self.__get_rdm_connection_uuid(credential)
+            conn_obj["CredentialConnectionID"] = credential_uuid
+
+        # check duplicity
+        if conn_obj in self.__rdm_connection_list:
+            return
+
+        self.__rdm_connection_list.append(conn_obj)
+
     def __build_rdm_connection_ssh_session(self, **kwargs):
         """Set RDM SSH session (type 77)
 
@@ -394,6 +498,71 @@ class SMDevolutionsRdm(SessionMaker):
             conn_obj["CredentialConnectionSavedPath"] = credential
             credential_uuid = self.__get_rdm_connection_uuid(credential)
             conn_obj["CredentialConnectionID"] = credential_uuid
+
+        # check duplicity
+        if conn_obj in self.__rdm_connection_list:
+            return
+
+        self.__rdm_connection_list.append(conn_obj)
+
+    def __build_rdm_connection_web_session(self, **kwargs):
+        """Set RDM Web based session (type 32)
+
+        Check if Web session not exists in self.__rdm_connection_list and add it.
+
+        Args:
+            folder (str, optional, default=""): folder path
+            session (str): session name
+            hostname (str, optional, default: ""): hostname/IP            
+            credential (str, optional): credential name/path
+            username (str, optional): username
+            web_form (str, optional): web login form id
+            web_login (str, optional): web login field id
+            web_passwd (str, optional): web password field id
+        """
+        # arguments
+        folder = kwargs.get("folder", "")
+        self.__build_rdm_connection_folder(folder=folder)
+        session = kwargs.get("session", "")
+        hostname = kwargs.get("hostname", "")
+        username = kwargs.get("username", "")
+        credential = kwargs.get("credential", "")
+        credential = credential.replace("/", "\\")
+        web_form = kwargs.get("web_form", "")
+        web_login = kwargs.get("web_login", "")
+        web_passwd = kwargs.get("web_passwd", "")
+
+        if session == "":
+            logging.warning("Session without name. Skipping.")
+            return
+
+        conn_obj = dict()
+        conn_obj["ConnectionType"] = 32
+        conn_obj["Group"] = folder
+        conn_obj["Name"] = session
+        conn_obj["OpenEmbedded"] = True
+        conn_obj["DataEntry"] = {}
+        conn_obj["DataEntry"]["Url"] = hostname
+        # conn_obj["DataEntry"]["BrowserExtensionLinkerCompareTypeWeb"] = 7
+        conn_obj["DataEntry"]["ConnectionTypeInfos"] = [{ "DataEntryConnectionType": 11 }]
+        conn_obj["DataEntry"]["WebBrowserApplication"] = 3 # chrome=3
+        conn_obj["DataEntry"]["WebBrowserExtensionMode"] = 1
+
+        # webform autofill
+        conn_obj["DataEntry"]["WebFormIdHtmlElementName"] = web_form
+        conn_obj["DataEntry"]["WebUsernameHtmlElementName"] = web_login
+        conn_obj["DataEntry"]["WebPasswordHtmlElementName"] = web_passwd
+        conn_obj["DataEntry"]["WebSubmitHtmlElementName"] = "[ENTER]"
+
+        # username
+        if username != "" and credential == "":
+            conn_obj["DataEntry"]["WebUserName"] = username
+
+        # credential
+        if credential != "":
+            # conn_obj["DataEntry"]["CredentialConnectionSavedPath"] = credential
+            credential_uuid = self.__get_rdm_connection_uuid(credential)
+            conn_obj["DataEntry"]["CredentialConnectionID"] = credential_uuid
 
         # check duplicity
         if conn_obj in self.__rdm_connection_list:
@@ -465,16 +634,44 @@ class SMDevolutionsRdm(SessionMaker):
             # get folders structure
             folder_path = self._sessions_dict["folder"][idx]
             folder_path = folder_path.replace("/", "\\")
+            session_type = self._sessions_dict["type"][idx]
 
             # ssh session (#77)
-            self.__build_rdm_connection_ssh_session(
-                folder=folder_path,
-                session=self._sessions_dict["session"][idx],
-                hostname=self._sessions_dict["hostname"][idx],
-                port=self._sessions_dict["port"][idx],
-                username=self._sessions_dict["username"][idx],
-                credential=self._sessions_dict["rdm-credential"][idx],
-            )
+            if session_type == "ssh":
+                self.__build_rdm_connection_ssh_session(
+                    folder=folder_path,
+                    session=self._sessions_dict["session"][idx],
+                    hostname=self._sessions_dict["hostname"][idx],
+                    port=self._sessions_dict["port"][idx],
+                    username=self._sessions_dict["username"][idx],
+                    credential=self._sessions_dict["rdm-credential"][idx],
+                )
+
+            # rdp session (#1)
+            if session_type == "rdp":
+                self.__build_rdm_connection_rdp_session(
+                    folder=folder_path,
+                    session=self._sessions_dict["session"][idx],
+                    hostname=self._sessions_dict["hostname"][idx],
+                    port=self._sessions_dict["port"][idx],
+                    username=self._sessions_dict["username"][idx],
+                    credential=self._sessions_dict["rdm-credential"][idx],
+                    alternate_shell=self._sessions_dict["rdp_alternate"][idx]
+                )
+                
+            # web session (#32)
+            if session_type == "web":
+                self.__build_rdm_connection_web_session(
+                    folder=folder_path,
+                    session=self._sessions_dict["session"][idx],
+                    hostname=self._sessions_dict["hostname"][idx],
+                    port=self._sessions_dict["port"][idx],
+                    username=self._sessions_dict["username"][idx],
+                    credential=self._sessions_dict["rdm-credential"][idx],
+                    web_form =self._sessions_dict["rdm_web_form"][idx],  
+                    web_login =self._sessions_dict["rdm_web_login"][idx],  
+                    web_passwd =self._sessions_dict["rdm_web_passwd"][idx],  
+                )                
 
     def __credentials_dict_to_json_connections(self):
         """Set __rdm_connection_list from _credentials_dict"""

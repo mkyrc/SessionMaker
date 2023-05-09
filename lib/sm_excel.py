@@ -25,6 +25,7 @@ from datetime import datetime
 # from jinja2 import Environment, FileSystemLoader
 # from ruamel.yaml import YAML
 
+
 # ========================================
 # Class SMExcel
 # ========================================
@@ -44,7 +45,6 @@ class SMExcel:
     """
 
     def __init__(self, **kwargs):
-
         ### public attributes
 
         ### private attributes
@@ -181,13 +181,12 @@ class SMExcel:
         try:
             sheet_array = self._excel_book[sheet_name]
             logging.info("Loading sheet '%s' from the book complete.", sheet_name)
-        except KeyError as err:
-            logging.error(
+        except KeyError:
+            logging.warning(
                 "Unable to load sheet '%s' from Excel file '%s'.",
                 sheet_name,
                 self._excel_file,
             )
-            logging.error("%s", err)
             return False
 
         try:
@@ -205,15 +204,13 @@ class SMExcel:
                 # get array (no key-val based dict)
                 sheet_content = pyexcel.get_array(array=sheet_array)
             logging.info("Reading data from sheet '%s' complete.", sheet_name)
-        except Exception as err:
-            logging.error("Unable to read data from the sheet '%s'.", sheet_name)
-            logging.error("Error: '%s'", err)
+        except Exception:
+            logging.error("Unable to read data from the sheet '%s'.", sheet_name)            
             return False
 
         return sheet_content
 
     def write_excel_book(self, **kwargs):
-
         # parse kwargs
         excel_file = str(kwargs.get("excel_file", self._excel_file))
         sessions_dict = kwargs.get("sessions_dict", {})
@@ -251,7 +248,7 @@ class SMExcel:
             "rdm-credentials",
             self._settings["excel"]["col_names_rdm_credentials"],
             rdm_credentials_dict,
-        )        
+        )
         workbook = self._write_sheet(
             workbook,
             "scrt-credentials",
@@ -264,7 +261,6 @@ class SMExcel:
             self._settings["excel"]["col_names_scrt_firewalls"],
             scrt_firewalls_dict,
         )
-
 
         # preparing destination file
         logging.info("Writing Excel file '%s'.", excel_file)
@@ -296,10 +292,10 @@ class SMExcel:
         logging.info("Creating workbook sheet '%s'", sheet_name)
         col = 0
         for key in col_names:
-            if key.startswith("scrt-") or sheet_name.startswith("scrt-"):
+            if key.startswith("scrt_") or sheet_name.startswith("scrt "):
                 # title_format.set_fg_color('#60b1b5')
                 sheet.write(0, col, col_names[key], title_scrt)
-            elif key.startswith("rdm-") or sheet_name.startswith("rdm-"):
+            elif key.startswith("rdm_") or sheet_name.startswith("rdm "):
                 # title_format.set_fg_color('#3f8df3')
                 sheet.write(0, col, col_names[key], title_rdm)
             else:
@@ -310,6 +306,7 @@ class SMExcel:
             if not key in data.keys():
                 data[key] = [""]
             if len(max(data[key], key=len)) > len(col_names[key]):
+            # if len(max(len(data[key]), len(int(key)))) > len(col_names[key]):
                 # if max(len(data[key]), len(key)) > len(col_names[key]):
                 col_width = len(max(data[key], key=len))
             else:

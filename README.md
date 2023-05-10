@@ -103,7 +103,7 @@ XML content can be exported to:
 ### Example
 
 <details>
-  <summary>Show example</summary>
+  <summary>Show Excel -> SecureCRT example</summary>
 
 **Source file**
 
@@ -111,7 +111,7 @@ Excel (source) file:
 
 ```
 $ ls data/EXAMPLE/
-devices.xlsx
+devices-v0.3.x.xlsx
 ```
 
 **Build process**
@@ -119,11 +119,14 @@ devices.xlsx
 Build XML content for SecureCRT from Excel source:
 
 ```
-$ python3 session_maker.py  data/EXAMPLE/devices.xlsx
+$ python3 session_maker.py data/EXAMPLE/devices-v0.3.x.xlsx
 Reading arguments...
 Done.
-Exporting sessions for SecureCRT...
-Exported: 5 sessions, 2 credential groups, 2 firewall groups.
+Reading Excel book...
+Done: 4 sessions (ssh: 4), 2 credential group(s), 0 firewall group(s) from Excel.
+Building sessions...
+Done.
+Writing to 'data/EXAMPLE/export/devices-v0.3.x.xml'...
 Done.
 ```
 
@@ -133,9 +136,47 @@ XML file is exported to `export` subfolder (because option `--write` or `--print
 
 ```
 $ ls data/EXAMPLE/export/
-devices.xml
+devices-v0.3.x.xml
+```
+</details>
+
+<details>
+  <summary>Show Excel -> Devolution RDM example</summary>
+
+**Source file**
+
+Excel (source) file:
+
+```
+$ ls data/EXAMPLE/
+devices-v0.3.x.xlsx
 ```
 
+**Build process**
+
+Build XML content for SecureCRT from Excel source:
+
+```
+$ python3 session_maker.py data/EXAMPLE/devices-v0.3.x.xlsx --type rdm
+
+Reading arguments...
+Done.
+Reading Excel book...
+Done. 12 session(s) (ssh: 4, rdp: 4, web: 4), 2 credential(s) from Excel.
+Building sessions...
+Done.
+Writing to 'data/EXAMPLE/export/devices-v0.3.x.json'...
+Done.
+```
+
+**Destination file**
+
+JSON file is exported to `export` subfolder (because option `--write` or `--print` is not defined):
+
+```
+$ ls data/EXAMPLE/export/
+devices-v0.3.x.json
+```
 </details>
 
 ## Session Reader
@@ -174,7 +215,7 @@ If `--write` option is not defined, destination file is exported to `export` sub
 ### Example
 
 <details>
-  <summary>Show example</summary>
+  <summary>SecureCRT (XML) -> Excel example</summary>
 
 **Source file**
 
@@ -182,7 +223,7 @@ SecureCRT (source) file (it is previously generated Excel file):
 
 ```
 $ ls data/EXAMPLE/export/
-devices.xml
+devices-v0.3.x.xml
 ```
 
 **Build process**
@@ -190,11 +231,11 @@ devices.xml
 Generate Excel file from SecureCRT XML source file:
 
 ```
-$ python session_reader.py data/EXAMPLE/export/devices.xml
+$ python3 session_reader.py data/EXAMPLE/export/devices-v0.3.x.xml
 Reading arguments...
 Done.
-Read SecureCRT sessions XML file...
-Done. Imported: 5 sessions, 2 credential groups, 2 firewall groups.
+Reading SecureCRT sessions XML file...
+Done. 4 session(s), 2 credential group(s), 0 firewall group(s) from XML file.
 Writing Excel file...
 Done.
 ```

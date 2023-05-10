@@ -143,7 +143,7 @@ class SMDevolutionsRdm(SessionMaker):
             return False
 
         excel_col_name = self._settings["excel"]["col_names_sessions"]
-        keys = ["rdm-credential", "rdm_web_form", "rdm_web_login", "rdm_web_passwd"]
+        keys = ["rdm_credential", "rdm_web_form", "rdm_web_login", "rdm_web_passwd"]
         required_keys = []
 
         if sessions is None or len(sessions) == 0:
@@ -513,7 +513,7 @@ class SMDevolutionsRdm(SessionMaker):
         Args:
             folder (str, optional, default=""): folder path
             session (str): session name
-            hostname (str, optional, default: ""): hostname/IP            
+            hostname (str, optional, default: ""): hostname/IP
             credential (str, optional): credential name/path
             username (str, optional): username
             web_form (str, optional): web login form id
@@ -544,8 +544,8 @@ class SMDevolutionsRdm(SessionMaker):
         conn_obj["DataEntry"] = {}
         conn_obj["DataEntry"]["Url"] = hostname
         # conn_obj["DataEntry"]["BrowserExtensionLinkerCompareTypeWeb"] = 7
-        conn_obj["DataEntry"]["ConnectionTypeInfos"] = [{ "DataEntryConnectionType": 11 }]
-        conn_obj["DataEntry"]["WebBrowserApplication"] = 3 # chrome=3
+        conn_obj["DataEntry"]["ConnectionTypeInfos"] = [{"DataEntryConnectionType": 11}]
+        conn_obj["DataEntry"]["WebBrowserApplication"] = 3  # chrome=3
         conn_obj["DataEntry"]["WebBrowserExtensionMode"] = 1
 
         # webform autofill
@@ -644,7 +644,7 @@ class SMDevolutionsRdm(SessionMaker):
                     hostname=self._sessions_dict["hostname"][idx],
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
-                    credential=self._sessions_dict["rdm-credential"][idx],
+                    credential=self._sessions_dict["rdm_credential"][idx],
                 )
 
             # rdp session (#1)
@@ -655,10 +655,10 @@ class SMDevolutionsRdm(SessionMaker):
                     hostname=self._sessions_dict["hostname"][idx],
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
-                    credential=self._sessions_dict["rdm-credential"][idx],
-                    alternate_shell=self._sessions_dict["rdp_alternate"][idx]
+                    credential=self._sessions_dict["rdm_credential"][idx],
+                    alternate_shell=self._sessions_dict["rdp_alternate"][idx],
                 )
-                
+
             # web session (#32)
             if session_type == "web":
                 self.__build_rdm_connection_web_session(
@@ -667,11 +667,11 @@ class SMDevolutionsRdm(SessionMaker):
                     hostname=self._sessions_dict["hostname"][idx],
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
-                    credential=self._sessions_dict["rdm-credential"][idx],
-                    web_form =self._sessions_dict["rdm_web_form"][idx],  
-                    web_login =self._sessions_dict["rdm_web_login"][idx],  
-                    web_passwd =self._sessions_dict["rdm_web_passwd"][idx],  
-                )                
+                    credential=self._sessions_dict["rdm_credential"][idx],
+                    web_form=self._sessions_dict["rdm_web_form"][idx],
+                    web_login=self._sessions_dict["rdm_web_login"][idx],
+                    web_passwd=self._sessions_dict["rdm_web_passwd"][idx],
+                )
 
     def __credentials_dict_to_json_connections(self):
         """Set __rdm_connection_list from _credentials_dict"""

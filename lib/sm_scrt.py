@@ -66,7 +66,8 @@ class SMSecureCrt(SessionMaker):
             credentials_dict = None
         else:
             credentials_dict = self.col_name_normalize(
-                credentials_dict_ret, self._settings["excel"]["col_names_scrt_credentials"]
+                credentials_dict_ret,
+                self._settings["excel"]["col_names_scrt_credentials"],
             )
         if self.set_credentials_dict(credentials_dict) == False:
             return False
@@ -140,7 +141,7 @@ class SMSecureCrt(SessionMaker):
                                 "Creating empty column name '%s'.", excel_col_name[key]
                             )
                             self._sessions_dict[key] = [""] * len(
-                                credentials["scrt-credential"]
+                                credentials["scrt_credential"]
                             )
 
     def set_firewalls_dict(self, firewalls=None):
@@ -570,10 +571,10 @@ class SMSecureCrt(SessionMaker):
                     port=self._sessions_dict["port"][idx],
                     # type=self._sessions_dict["type"][idx],
                     username=self._sessions_dict["username"][idx],
-                    credential=self._sessions_dict["scrt-credential"][idx],
-                    colorscheme=self._sessions_dict["scrt-colorscheme"][idx],
-                    keywords=self._sessions_dict["scrt-keywords"][idx],
-                    firewall=self._sessions_dict["scrt-firewall"][idx],
+                    credential=self._sessions_dict["scrt_credential"][idx],
+                    colorscheme=self._sessions_dict["scrt_colorscheme"][idx],
+                    keywords=self._sessions_dict["scrt_keywords"][idx],
+                    firewall=self._sessions_dict["scrt_firewall"][idx],
                 )
 
             # add session XML to folder path XML

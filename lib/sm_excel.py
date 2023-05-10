@@ -205,7 +205,7 @@ class SMExcel:
                 sheet_content = pyexcel.get_array(array=sheet_array)
             logging.info("Reading data from sheet '%s' complete.", sheet_name)
         except Exception:
-            logging.error("Unable to read data from the sheet '%s'.", sheet_name)            
+            logging.error("Unable to read data from the sheet '%s'.", sheet_name)
             return False
 
         return sheet_content
@@ -302,11 +302,11 @@ class SMExcel:
                 # title_format.set_fg_color('#ffffff')
                 sheet.write(0, col, col_names[key], title_general)
 
-                # 3f8df3
-            if not key in data.keys():
+            # crerate key if not exists
+            if not key in data.keys() or data[key] == []:
                 data[key] = [""]
             if len(max(data[key], key=len)) > len(col_names[key]):
-            # if len(max(len(data[key]), len(int(key)))) > len(col_names[key]):
+                # if len(max(len(data[key]), len(int(key)))) > len(col_names[key]):
                 # if max(len(data[key]), len(key)) > len(col_names[key]):
                 col_width = len(max(data[key], key=len))
             else:

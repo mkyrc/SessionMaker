@@ -237,6 +237,7 @@ class SMSecureCrt(SessionMaker):
 
         # walk through all "key tags" and read folders and sessions
         idx = 0
+        username_found = False
         for child in root.iterfind("key"):
             # set session parameters from XML content
 
@@ -245,9 +246,15 @@ class SMSecureCrt(SessionMaker):
             for sub_et in child.findall("./*/[@name='Username']"):
                 text = "" if sub_et.text is None else sub_et.text
                 self._credentials_dict["username"].insert(idx, text)
+                username_found = True
+
+            # fix: if username not exists
+            # (when scrt personal data are stored separately, username is not included in XML export)
+            if not username_found:
+                self._credentials_dict["username"].insert(idx, "")
 
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<33}".format(
+                " {0:>4} | {1:<20} | {2:<35}".format(
                     idx + 1,
                     self._credentials_dict["credential"][idx],
                     self._credentials_dict["username"][idx],
@@ -260,6 +267,7 @@ class SMSecureCrt(SessionMaker):
 
         # walk through all "key tags" and read folders and sessions
         idx = 0
+        username_found = False
         for child in root.iterfind("key"):
             # set firewall parameters from XML content
 
@@ -276,13 +284,20 @@ class SMSecureCrt(SessionMaker):
             for sub_et in child.findall("./*/[@name='Firewall User']"):
                 text = "" if sub_et.text is None else sub_et.text
                 self._firewalls_dict["username"].insert(idx, text)
+                username_found = True
+
+            # fix: username not exists
+            # (when scrt personal data are stored separately, username is not included in XML export)
+            if not username_found:
+                self._credentials_dict["username"].insert(idx, "")
 
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<20} | {3:<10}".format(
+                " {0:>4} | {1:<20} | {2:<14} | {3:<5} | {4:<10}".format(
                     idx + 1,
                     self._firewalls_dict["firewall"][idx],
                     self._firewalls_dict["address"][idx],
                     self._firewalls_dict["port"][idx],
+                    self._firewalls_dict["username"][idx],
                 )
             )
             idx += 1
@@ -307,7 +322,7 @@ class SMSecureCrt(SessionMaker):
                 # build session
                 idx = len(self._sessions_dict["folder"])
                 logging.debug(
-                    " {0:>3} | {1:<30} | {2:<30}".format(
+                    " {0:>4} | {1:<40} | {2:<30}".format(
                         idx + 1, "/".join(folder), child.attrib["name"]
                     )
                 )
@@ -389,14 +404,14 @@ class SMSecureCrt(SessionMaker):
             folder = []
             logging.info("Importing credentials from XML file...")
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<20}".format(
+                " {0:>4} | {1:<20} | {2:<20}".format(
                     "#", "credential group", "username"
                 )
             )
-            logging.debug(" {0:->3}-+-{1:-<20}-+-{2:-<33}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<20}-+-{2:-<35}".format("", "", ""))
             self.set_credentials_dict()
             self.__set_credentials_dict_from_xml(credentials_root)
-            logging.debug(" {0:->3}-+-{1:-<20}-+-{2:-<33}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<20}-+-{2:-<35}".format("", "", ""))
             logging.info("Imported %d record(s).", self.get_credentials_dict_count())
 
         return self._credentials_dict
@@ -418,17 +433,21 @@ class SMSecureCrt(SessionMaker):
             folder = []
             logging.info("Importing firewalls from XML file...")
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<20} | {3:<10}".format(
-                    "#", "firewall group", "address", "port"
+                " {0:>4} | {1:<20} | {2:<14} | {3:<5} | {4:<10}".format(
+                    "#", "firewall group", "address", "port", "username"
                 )
             )
             logging.debug(
-                " {0:->3}-+-{1:-<20}-+-{2:-<20}-+-{3:-<10}".format("", "", "", "")
+                " {0:->4}-+-{1:-<20}-+-{2:-<14}-+-{3:-<5}-+-{4:-<10}".format(
+                    "", "", "", "", ""
+                )
             )
             self.set_firewalls_dict()
             self.__set_firewalls_dict_from_xml(firewalls_root)
             logging.debug(
-                " {0:->3}-+-{1:-<20}-+-{2:-<20}-+-{3:-<10}".format("", "", "", "")
+                " {0:->4}-+-{1:-<20}-+-{2:-<14}-+-{3:-<5}-+-{4:-<10}".format(
+                    "", "", "", "", ""
+                )
             )
             logging.info("Imported %d record(s).", self.get_firewalls_dict_count())
 
@@ -451,12 +470,12 @@ class SMSecureCrt(SessionMaker):
             folder = []
             logging.info("Importing sessions from XML file...")
             logging.debug(
-                " {0:>3} | {1:<30} | {2:<30}".format("#", "folder path", "session name")
+                " {0:>4} | {1:<40} | {2:<30}".format("#", "folder path", "session name")
             )
-            logging.debug(" {0:->3}-+-{1:-<30}-+-{2:-<30}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<40}-+-{2:-<30}".format("", "", ""))
             self.set_sessions_dict()
             self.__set_sessions_dict_from_xml(sessions_root, folder)
-            logging.debug(" {0:->3}-+-{1:-<30}-+-{2:-<30}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<40}-+-{2:-<30}".format("", "", ""))
             logging.info("Imported %d record(s).", self.get_sessions_dict_count())
 
         return self._sessions_dict

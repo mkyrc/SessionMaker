@@ -2,6 +2,12 @@
 
 <!-- https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.3.0-rc4 (2023-08-24)
+
+### Added
+
+- Now is possible print program version 
+
 ## 0.3.0-rc3 (2023-06-02)
 
 ### Fixed

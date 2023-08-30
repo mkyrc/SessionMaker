@@ -25,6 +25,7 @@ from datetime import datetime
 # from jinja2 import Environment, FileSystemLoader
 # from ruamel.yaml import YAML
 
+
 # ========================================
 # Class SMExcel
 # ========================================
@@ -44,7 +45,6 @@ class SMExcel:
     """
 
     def __init__(self, **kwargs):
-
         ### public attributes
 
         ### private attributes
@@ -213,7 +213,6 @@ class SMExcel:
         return sheet_content
 
     def write_excel_book(self, **kwargs):
-
         # parse kwargs
         excel_file = str(kwargs.get("excel_file", self._excel_file))
         sessions_dict = kwargs.get("sessions_dict", {})
@@ -251,7 +250,7 @@ class SMExcel:
             "rdm-credentials",
             self._settings["excel"]["col_names_rdm_credentials"],
             rdm_credentials_dict,
-        )        
+        )
         workbook = self._write_sheet(
             workbook,
             "scrt-credentials",
@@ -264,7 +263,6 @@ class SMExcel:
             self._settings["excel"]["col_names_scrt_firewalls"],
             scrt_firewalls_dict,
         )
-
 
         # preparing destination file
         logging.info("Writing Excel file '%s'.", excel_file)
@@ -306,9 +304,11 @@ class SMExcel:
                 # title_format.set_fg_color('#ffffff')
                 sheet.write(0, col, col_names[key], title_general)
 
-                # 3f8df3
-            if not key in data.keys():
+            # check if key exists in data or if list is not empty
+            if not key in data.keys() or len(data[key]) == 0:
                 data[key] = [""]
+
+            # set column width
             if len(max(data[key], key=len)) > len(col_names[key]):
                 # if max(len(data[key]), len(key)) > len(col_names[key]):
                 col_width = len(max(data[key], key=len))

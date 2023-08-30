@@ -7,11 +7,12 @@
 ### Fixed
 
 - Compatibility issue with openpyxl 3.1.0 (https://github.com/pyexcel/pyexcel-xlsx/issues/52)
+
 ## 0.3.0-rc4 (2023-08-24)
 
 ### Added
 
-- Now is possible print program version 
+- Now is possible print program version
 
 ## 0.3.0-rc3 (2023-06-02)
 

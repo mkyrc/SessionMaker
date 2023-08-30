@@ -302,9 +302,11 @@ class SMExcel:
                 # title_format.set_fg_color('#ffffff')
                 sheet.write(0, col, col_names[key], title_general)
 
-            # crerate key if not exists
-            if not key in data.keys() or data[key] == []:
+                # 3f8df3
+            if not key in data.keys():
                 data[key] = [""]
+
+            # set column width
             if len(max(data[key], key=len)) > len(col_names[key]):
                 # if len(max(len(data[key]), len(int(key)))) > len(col_names[key]):
                 # if max(len(data[key]), len(key)) > len(col_names[key]):

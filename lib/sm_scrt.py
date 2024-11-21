@@ -52,7 +52,7 @@ class SMSecureCrt(SessionMaker):
     # ========================================
 
     def excel_read_sheet_credentials(self, sheet_name: str) -> dict | list | bool:
-        """Read excel sheet 'scrt-credentials' and return content as dict/array.
+        """Read excel sheet 'scrt_credentials' and return content as dict/array.
 
         Args:
             sheet_name (str): Sheet's name

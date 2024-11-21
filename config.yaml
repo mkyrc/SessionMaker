@@ -22,10 +22,10 @@ excel:
     rdm_credential: rdm credential
 
     # SecureCRT values:
-    scrt-credential: scrt credential group
-    scrt-colorscheme: scrt colorscheme
-    scrt-keywords: scrt keywords
-    scrt-firewall: scrt firewall group
+    scrt_credential: scrt credential
+    scrt_colorscheme: scrt colorscheme
+    scrt_keywords: scrt keywords
+    scrt_firewall: scrt firewall group
 
   # SCRT: column names for 'scrt-credentials' tab
   col_names_scrt_credentials:

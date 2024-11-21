@@ -8,7 +8,7 @@ import argparse
 # from pathlib import Path
 # from ruamel.yaml import YAML
 
-VERSION = "0.3.0-rc4"
+VERSION = "0.3.0-rc6"
 
 def parse_maker_args():
     """Parse arguments for export sessions

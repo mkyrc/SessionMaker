@@ -1,7 +1,12 @@
 # Changelog
 
-
 <!-- https://keepachangelog.com/en/1.0.0/ -->
+
+## 0.3.0-rc6 (2024-11-21)
+
+### Fixed
+
+- SessionMaker: RDM/SCRT vault precedence fixed when folder path ends with '/' in RDM credentials
 
 ## 0.3.0-rc5 (2023-08-30)
 

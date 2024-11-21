@@ -15,6 +15,7 @@ from .sm_json import SMJson
 
 # logger = logging.getLogger(__name__)
 
+
 # ========================================
 # Class SessionMaker
 # ========================================
@@ -49,10 +50,10 @@ class SessionMaker:
         # sessions (ordered dict)
         self._sessions_dict = dict()
         # self.set_sessions_dict(kwargs.get("sessions", None))
-        
+
         # credential groups dict
         self._credentials_dict = dict()
-        
+
         # XML file
         self.xml_file = ""
         self._xml_obj = SMXml()
@@ -88,11 +89,11 @@ class SessionMaker:
     def get_credentials_dict(self):
         """Return credentials dictionary (ordered dict)."""
         return self._credentials_dict
-    
+
     def get_credentials_dict_count(self):
         """Return credentials dictionary size (int)."""
-        return len(self._credentials_dict["credential"])    
-    
+        return len(self._credentials_dict["credential"])
+
     def get_sessions_dict(self) -> dict:
         """Return sessions dictionary.
 
@@ -101,13 +102,27 @@ class SessionMaker:
         """
         return self._sessions_dict
 
-    def get_sessions_dict_count(self) -> int:
+    def get_sessions_dict_count(self, type=[""]) -> int:
         """Return sessions dictionary size.
 
+        Args:
+            type (str): Type of session. If empty, return all sessions
         Returns:
             (int): Sessions groups dict count
         """
-        return len(self._sessions_dict["session"])
+        # return len(self._sessions_dict["session"])
+        session_count = 0
+
+        for idx, session_type in enumerate(self._sessions_dict["type"]):
+            if self._sessions_dict["session"][idx] == "":
+                # empty session name, skip it
+                continue
+            if "" in type:
+                session_count += 1
+            elif session_type in type:
+                session_count += 1
+
+        return session_count
 
     def get_xml_sessions(self) -> ET.Element | None:
         """Return sessions in XML format.
@@ -166,18 +181,47 @@ class SessionMaker:
 
         Args:
             sessions (dict): Sessions ordered dictionary
+
+        Return:
+            False in case of error (missing required column)
         """
-        col_name = self._settings["excel"]["col_names_sessions"]
-        keys = ["folder", "session", "hostname", "port", "username"]
+        excel_col_name = self._settings["excel"]["col_names_sessions"]
+        keys = [
+            "folder",
+            "session",
+            "type",
+            "hostname",
+            "port",
+            "username",
+            "rdp_alternate",
+        ]
+        required_keys = ["session", "type", "hostname"]
 
         if sessions is None or len(sessions) == 0:
-            for key in col_name:
+            for key in excel_col_name:
                 if key in keys:
                     self._sessions_dict[key] = []
         else:
-            for key in col_name:
+            for key in excel_col_name:
                 if key in keys:
-                    self._sessions_dict[key] = list(map(str, sessions[col_name[key]]))
+                    try:
+                        self._sessions_dict[key] = list(map(str, sessions[key]))
+                    except KeyError:
+                        logging.warning(
+                            "Missing column name '%s' (key: '%s').",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+                        else:
+                            logging.warning(
+                                "Creating empty column name '%s'.", excel_col_name[key]
+                            )
+                            self._sessions_dict[key] = [""] * len(sessions["session"])
 
     def set_settings(self, settings: dict):
         """Set configuration settings dict (default: config.yaml).
@@ -237,13 +281,17 @@ class SessionMaker:
             ordered dict: Column/Row-based dictionary (when get=['column', 'row']
             False: In case of error
         """
-        sessions_dict = self.excel_read_sheet(sheet_name, "column")
-        sessions_dict = self.col_name_normalize(
-            sessions_dict, self._settings["excel"]["col_names_sessions"]
-        )
-        self.set_sessions_dict(sessions_dict)
-        
-        return self._sessions_dict
+        sessions_dict_ret = self.excel_read_sheet(sheet_name, "column")
+        if sessions_dict_ret == False:
+            sessions_dict = None
+        else:
+            sessions_dict = self.col_name_normalize(
+                sessions_dict_ret, self._settings["excel"]["col_names_sessions"]
+            )
+        if self.set_sessions_dict(sessions_dict) == False:
+            return False
+        else:
+            return self._sessions_dict
 
     def col_name_normalize(self, ordered_dict, col_names):
         """Change dictionary key from excel column name to system key defined in config.yaml

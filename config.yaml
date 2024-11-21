@@ -12,16 +12,17 @@ excel:
   col_names_sessions:
     folder: folder
     session: session
-    # type: type # type
+    type: type #[ssh, rdp, web]
     hostname: hostname
     port: port
     username: username
+    rdp_alternate: rdp alternate shell
 
     # Devolutions RDM values:
     rdm_credential: rdm credential
 
     # SecureCRT values:
-    scrt-credential: scrt credential
+    scrt-credential: scrt credential group
     scrt-colorscheme: scrt colorscheme
     scrt-keywords: scrt keywords
     scrt-firewall: scrt firewall group
@@ -51,6 +52,6 @@ scrt:
   # default XML template with (default) session settings
   template:
     root: templates/scrt_default_root.xml
-    session: templates/scrt_default_session.xml
+    session_ssh: templates/scrt_default_session_ssh.xml
     credential: templates/scrt_default_credential.xml
     firewall: templates/scrt_default_firewall.xml

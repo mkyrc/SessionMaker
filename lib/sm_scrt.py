@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from .sm_class import SessionMaker
 from .sm_xml import SMXml
 
+
 # ========================================
 # Class SMSecureCrt
 # ========================================
@@ -49,7 +50,7 @@ class SMSecureCrt(SessionMaker):
     # ========================================
     # Public methods
     # ========================================
-    
+
     def excel_read_sheet_credentials(self, sheet_name: str) -> dict | list | bool:
         """Read excel sheet 'scrt-credentials' and return content as dict/array.
 
@@ -60,14 +61,19 @@ class SMSecureCrt(SessionMaker):
             ordered dict: Column/Row-based dictionary (when get=['column', 'row']
             False: In case of error
         """
-        credentials_dict = self.excel_read_sheet(sheet_name, "column")
-        credentials_dict = self.col_name_normalize(
-            credentials_dict, self._settings["excel"]["col_names_scrt_credentials"]
-        )
-        self.set_credentials_dict(credentials_dict)
+        credentials_dict_ret = self.excel_read_sheet(sheet_name, "column")
+        if credentials_dict_ret == False:
+            credentials_dict = None
+        else:
+            credentials_dict = self.col_name_normalize(
+                credentials_dict_ret,
+                self._settings["excel"]["col_names_scrt_credentials"],
+            )
+        if self.set_credentials_dict(credentials_dict) == False:
+            return False
+        else:
+            return self._credentials_dict
 
-        return self._credentials_dict    
-    
     def excel_read_sheet_firewalls(self, sheet_name: str) -> dict | list | bool:
         """Read excel sheet 'scrt-firewalls' and return content as dict/array.
 
@@ -78,13 +84,17 @@ class SMSecureCrt(SessionMaker):
             ordered dict: Column/Row-based dictionary (when get=['column', 'row']
             False: In case of error
         """
-        firewalls_dict = self.excel_read_sheet(sheet_name, "column")
-        firewalls_dict = self.col_name_normalize(
-            firewalls_dict, self._settings["excel"]["col_names_scrt_firewalls"]
-        )
-        self.set_firewalls_dict(firewalls_dict)
-
-        return self._credentials_dict      
+        firewalls_dict_ret = self.excel_read_sheet(sheet_name, "column")
+        if firewalls_dict_ret == False:
+            firewalls_dict = None
+        else:
+            firewalls_dict = self.col_name_normalize(
+                firewalls_dict_ret, self._settings["excel"]["col_names_scrt_firewalls"]
+            )
+        if self.set_firewalls_dict(firewalls_dict) == False:
+            return False
+        else:
+            return self._firewalls_dict
 
     def get_firewalls_dict(self):
         """Return firewall groups dictionary (ordered dict)."""
@@ -99,45 +109,96 @@ class SMSecureCrt(SessionMaker):
 
         Args:
             credentials (dict): Ordered dict.
+
+        Return:
+            False: In case if not all required data are loaded
         """
-        col_name = self._settings["excel"]["col_names_scrt_credentials"]
-        # keys = ["scrt-credential", "scrt-username"]
+        excel_col_name = self._settings["excel"]["col_names_scrt_credentials"]
+        keys = ["credential", "username"]
+        required_keys = ["credential"]
 
         if credentials is None:
-            for key in col_name:
+            for key in excel_col_name:
                 self._credentials_dict[key] = []
         else:
-            for key in col_name:
-                # self._credentials_dict[key] = list(map(str, credentials[col_name[key]]))
-                self._credentials_dict[key] = list(map(str, credentials[key]))
+            for key in excel_col_name:
+                if key in keys:
+                    try:
+                        self._credentials_dict[key] = list(map(str, credentials[key]))
+                    except KeyError as err:
+                        logging.warning(
+                            "Missing  column name '%s' (key: '%s'.)",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+                        else:
+                            logging.info(
+                                "Creating empty column name '%s'.", excel_col_name[key]
+                            )
+                            self._sessions_dict[key] = [""] * len(
+                                credentials["scrt_credential"]
+                            )
 
     def set_firewalls_dict(self, firewalls=None):
         """Set (SecureCRT specific fields) credentials dictionary. If not set, initiate it.
 
         Args:
             firewalls (dict): Ordered dict.
+
+        Return:
+            False: In case if not all required data are loaded
         """
-        col_name = self._settings["excel"]["col_names_scrt_firewalls"]
-        # keys = ["firewall", "address", "port", "username"]
+        excel_col_name = self._settings["excel"]["col_names_scrt_firewalls"]
+        keys = ["firewall", "address", "port", "username"]
+        required_keys = ["firewall", "address"]
 
         if firewalls is None:
-            for key in col_name:
+            for key in excel_col_name:
                 self._firewalls_dict[key] = []
         else:
-            for key in col_name:
-                # self._firewalls_dict[key] = list(map(str, firewalls[col_name[key]]))
-                self._firewalls_dict[key] = list(map(str, firewalls[key]))
+            for key in excel_col_name:
+                if key in keys:
+                    try:
+                        self._firewalls_dict[key] = list(map(str, firewalls[key]))
+                    except KeyError:
+                        logging.warning(
+                            "Missing column name '%s' (key: '%s').",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+                        else:
+                            logging.warning(
+                                "Creating empty column name '%s'.", excel_col_name[key]
+                            )
+                            self._firewalls_dict[key] = [""] * len(
+                                firewalls["firewall"]
+                            )
 
     def set_sessions_dict(self, sessions=None):
         """Set (SecureCRT specific fields) session dictionary. If not set, initiate it.
 
         Args:
             sessions (dict): sessions dictionary
+
+        Return:
+            False: In case if not all required data are loaded
         """
-        super().set_sessions_dict(sessions)
+        if super().set_sessions_dict(sessions) == False:
+            return False
 
         excel_col_name = self._settings["excel"]["col_names_sessions"]
-        keys = ["scrt-credential", "scrt-colorscheme", "scrt-keywords", "scrt-firewall"]
+        keys = ["scrt_credential", "scrt_colorscheme", "scrt_keywords", "scrt_firewall"]
+        required_keys = []
 
         if sessions is None or len(sessions) == 0:
             for key in excel_col_name:
@@ -146,8 +207,24 @@ class SMSecureCrt(SessionMaker):
         else:
             for key in excel_col_name:
                 if key in keys:
-                    # self._sessions_dict[key] = list(map(str, sessions[col_name[key]]))
-                    self._sessions_dict[key] = list(map(str, sessions[key]))
+                    try:
+                        self._sessions_dict[key] = list(map(str, sessions[key]))
+                    except KeyError as err:
+                        logging.warning(
+                            "Missing column name '%s' (key: '%s').",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+                        else:
+                            logging.warning(
+                                "Creating empty column name '%s'.", excel_col_name[key]
+                            )
+                            self._sessions_dict[key] = [""] * len(sessions["session"])
 
     # ====================
     # Prepare XML to ordered dict (From XML to Excel)
@@ -160,8 +237,8 @@ class SMSecureCrt(SessionMaker):
 
         # walk through all "key tags" and read folders and sessions
         idx = 0
+        username_found = False
         for child in root.iterfind("key"):
-
             # set session parameters from XML content
 
             self._credentials_dict["credential"].insert(idx, child.attrib["name"])
@@ -169,9 +246,15 @@ class SMSecureCrt(SessionMaker):
             for sub_et in child.findall("./*/[@name='Username']"):
                 text = "" if sub_et.text is None else sub_et.text
                 self._credentials_dict["username"].insert(idx, text)
+                username_found = True
+
+            # fix: if username not exists
+            # (when scrt personal data are stored separately, username is not included in XML export)
+            if not username_found:
+                self._credentials_dict["username"].insert(idx, "")
 
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<33}".format(
+                " {0:>4} | {1:<20} | {2:<35}".format(
                     idx + 1,
                     self._credentials_dict["credential"][idx],
                     self._credentials_dict["username"][idx],
@@ -184,8 +267,8 @@ class SMSecureCrt(SessionMaker):
 
         # walk through all "key tags" and read folders and sessions
         idx = 0
+        username_found = False
         for child in root.iterfind("key"):
-
             # set firewall parameters from XML content
 
             self._firewalls_dict["firewall"].insert(idx, child.attrib["name"])
@@ -201,13 +284,20 @@ class SMSecureCrt(SessionMaker):
             for sub_et in child.findall("./*/[@name='Firewall User']"):
                 text = "" if sub_et.text is None else sub_et.text
                 self._firewalls_dict["username"].insert(idx, text)
+                username_found = True
+
+            # fix: username not exists
+            # (when scrt personal data are stored separately, username is not included in XML export)
+            if not username_found:
+                self._credentials_dict["username"].insert(idx, "")
 
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<20} | {3:<10}".format(
+                " {0:>4} | {1:<20} | {2:<14} | {3:<5} | {4:<10}".format(
                     idx + 1,
                     self._firewalls_dict["firewall"][idx],
                     self._firewalls_dict["address"][idx],
                     self._firewalls_dict["port"][idx],
+                    self._firewalls_dict["username"][idx],
                 )
             )
             idx += 1
@@ -217,7 +307,6 @@ class SMSecureCrt(SessionMaker):
 
         # walk through all "key tags" and read folders and sessions
         for child in root.iterfind("key"):
-
             # get correct folder path
             while len(folder) > 0 and root.attrib["name"] != folder[len(folder) - 1]:
                 if len(folder) > 1:
@@ -233,7 +322,7 @@ class SMSecureCrt(SessionMaker):
                 # build session
                 idx = len(self._sessions_dict["folder"])
                 logging.debug(
-                    " {0:>3} | {1:<30} | {2:<30}".format(
+                    " {0:>4} | {1:<40} | {2:<30}".format(
                         idx + 1, "/".join(folder), child.attrib["name"]
                     )
                 )
@@ -242,6 +331,7 @@ class SMSecureCrt(SessionMaker):
                 self._sessions_dict["folder"].insert(idx, "/".join(folder))
 
                 self._sessions_dict["session"].insert(idx, child.attrib["name"])
+                self._sessions_dict["rdp_alternate"].insert(idx, "")
 
                 for sub_et in child.findall("./*/[@name='Hostname']"):
                     text = "" if sub_et.text is None else sub_et.text
@@ -250,6 +340,7 @@ class SMSecureCrt(SessionMaker):
                 for sub_et in child.findall("./*/[@name='[SSH2] Port']"):
                     text = "" if sub_et.text is None else sub_et.text
                     self._sessions_dict["port"].insert(idx, text)
+                    self._sessions_dict["type"].insert(idx, "ssh")
 
                 for sub_et in child.findall("./*/[@name='Username']"):
                     text = "" if sub_et.text is None else sub_et.text
@@ -257,19 +348,19 @@ class SMSecureCrt(SessionMaker):
 
                 for sub_et in child.findall("./*/[@name='Credential Title']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["scrt-credential"].insert(idx, text)
+                    self._sessions_dict["scrt_credential"].insert(idx, text)
 
                 for sub_et in child.findall("./*/[@name='Keyword Set']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["scrt-keywords"].insert(idx, text)
+                    self._sessions_dict["scrt_keywords"].insert(idx, text)
 
                 for sub_et in child.findall("./*/[@name='Color Scheme']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["scrt-colorscheme"].insert(idx, text)
+                    self._sessions_dict["scrt_colorscheme"].insert(idx, text)
 
                 for sub_et in child.findall("./*/[@name='Firewall Name']"):
                     text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["scrt-firewall"].insert(idx, text)
+                    self._sessions_dict["scrt_firewall"].insert(idx, text)
 
             self.__set_sessions_dict_from_xml(child, folder)
 
@@ -313,14 +404,14 @@ class SMSecureCrt(SessionMaker):
             folder = []
             logging.info("Importing credentials from XML file...")
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<20}".format(
+                " {0:>4} | {1:<20} | {2:<20}".format(
                     "#", "credential group", "username"
                 )
             )
-            logging.debug(" {0:->3}-+-{1:-<20}-+-{2:-<33}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<20}-+-{2:-<35}".format("", "", ""))
             self.set_credentials_dict()
             self.__set_credentials_dict_from_xml(credentials_root)
-            logging.debug(" {0:->3}-+-{1:-<20}-+-{2:-<33}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<20}-+-{2:-<35}".format("", "", ""))
             logging.info("Imported %d record(s).", self.get_credentials_dict_count())
 
         return self._credentials_dict
@@ -342,17 +433,21 @@ class SMSecureCrt(SessionMaker):
             folder = []
             logging.info("Importing firewalls from XML file...")
             logging.debug(
-                " {0:>3} | {1:<20} | {2:<20} | {3:<10}".format(
-                    "#", "firewall group", "address", "port"
+                " {0:>4} | {1:<20} | {2:<14} | {3:<5} | {4:<10}".format(
+                    "#", "firewall group", "address", "port", "username"
                 )
             )
             logging.debug(
-                " {0:->3}-+-{1:-<20}-+-{2:-<20}-+-{3:-<10}".format("", "", "", "")
+                " {0:->4}-+-{1:-<20}-+-{2:-<14}-+-{3:-<5}-+-{4:-<10}".format(
+                    "", "", "", "", ""
+                )
             )
             self.set_firewalls_dict()
             self.__set_firewalls_dict_from_xml(firewalls_root)
             logging.debug(
-                " {0:->3}-+-{1:-<20}-+-{2:-<20}-+-{3:-<10}".format("", "", "", "")
+                " {0:->4}-+-{1:-<20}-+-{2:-<14}-+-{3:-<5}-+-{4:-<10}".format(
+                    "", "", "", "", ""
+                )
             )
             logging.info("Imported %d record(s).", self.get_firewalls_dict_count())
 
@@ -375,12 +470,12 @@ class SMSecureCrt(SessionMaker):
             folder = []
             logging.info("Importing sessions from XML file...")
             logging.debug(
-                " {0:>3} | {1:<30} | {2:<30}".format("#", "folder path", "session name")
+                " {0:>4} | {1:<40} | {2:<30}".format("#", "folder path", "session name")
             )
-            logging.debug(" {0:->3}-+-{1:-<30}-+-{2:-<30}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<40}-+-{2:-<30}".format("", "", ""))
             self.set_sessions_dict()
             self.__set_sessions_dict_from_xml(sessions_root, folder)
-            logging.debug(" {0:->3}-+-{1:-<30}-+-{2:-<30}".format("", "", ""))
+            logging.debug(" {0:->4}-+-{1:-<40}-+-{2:-<30}".format("", "", ""))
             logging.info("Imported %d record(s).", self.get_sessions_dict_count())
 
         return self._sessions_dict
@@ -404,7 +499,7 @@ class SMSecureCrt(SessionMaker):
             excel_file=excel_file,
             sessions_dict=sessions_dict,
             scrt_credentials_dict=credentials_dict,
-            scrt_firewalls_dict=firewalls_dict,            
+            scrt_firewalls_dict=firewalls_dict,
         )
 
     # ====================
@@ -483,34 +578,39 @@ class SMSecureCrt(SessionMaker):
                 folders_xml = self.__xml_build_folder_path(folder_path.split("/"))
 
             # get session data in XML format
-            session_xml = self.__xml_get_session(
-                # template
-                xml_tpl_session=self.__xml_tpl_get_session(),
-                # values
-                session=self._sessions_dict["session"][idx],
-                hostname=self._sessions_dict["hostname"][idx],
-                port=self._sessions_dict["port"][idx],
-                username=self._sessions_dict["username"][idx],
-                credential=self._sessions_dict["scrt-credential"][idx],
-                colorscheme=self._sessions_dict["scrt-colorscheme"][idx],
-                keywords=self._sessions_dict["scrt-keywords"][idx],
-                firewall=self._sessions_dict["scrt-firewall"][idx],
-            )
+            session_xml = None
+            # SSH session
+            if self._sessions_dict["type"][idx] == "ssh":
+                session_xml = self.__xml_get_session_ssh(
+                    # template
+                    xml_tpl_session=self.__xml_tpl_get_session_ssh(),
+                    # values
+                    session=self._sessions_dict["session"][idx],
+                    hostname=self._sessions_dict["hostname"][idx],
+                    port=self._sessions_dict["port"][idx],
+                    # type=self._sessions_dict["type"][idx],
+                    username=self._sessions_dict["username"][idx],
+                    credential=self._sessions_dict["scrt_credential"][idx],
+                    colorscheme=self._sessions_dict["scrt_colorscheme"][idx],
+                    keywords=self._sessions_dict["scrt_keywords"][idx],
+                    firewall=self._sessions_dict["scrt_firewall"][idx],
+                )
 
             # add session XML to folder path XML
-            if isinstance(folders_xml, ET.Element):
-                # return folders_xml (with session_xml)
-                xml_filter = "." + "/key" * (len(folder_path.split("/")) - 1)
-                last_folder = folders_xml.find(xml_filter)
-                if isinstance(last_folder, ET.Element):
-                    last_folder.append(session_xml)
+            if session_xml != None:
+                if isinstance(folders_xml, ET.Element):
+                    # return folders_xml (with session_xml)
+                    xml_filter = "." + "/key" * (len(folder_path.split("/")) - 1)
+                    last_folder = folders_xml.find(xml_filter)
+                    if isinstance(last_folder, ET.Element):
+                        last_folder.append(session_xml)
+                    else:
+                        folders_xml.append(session_xml)
+                    ret_xml.append(folders_xml)
                 else:
-                    folders_xml.append(session_xml)
-                ret_xml.append(folders_xml)
-            else:
-                # return session_xml only (no folder prefix/path defined)
-                if isinstance(session_xml, ET.Element):
-                    ret_xml.append(session_xml)
+                    # return session_xml only (no folder prefix/path defined)
+                    if isinstance(session_xml, ET.Element):
+                        ret_xml.append(session_xml)
 
         # normalize folder paths structure (merge duplicate folder paths)
         ret_xml = self.__xml_merge_sessions_folder_path(ret_xml)
@@ -610,11 +710,11 @@ class SMSecureCrt(SessionMaker):
 
         return firewall_root
 
-    def __xml_get_session(self, **kwargs) -> ET.Element:
-        """Read XML session template and set XML object based on arguments.
+    def __xml_get_session_ssh(self, **kwargs) -> ET.Element:
+        """Read XML ssh session template and set XML object based on arguments.
 
         Args:
-            xml_tpl_session (str): XML template file for session
+            xml_tpl_session (str): XML template file for ssh session
             session (str): Session name
             address (str): Session address
             port (str, default: "22"): Session port
@@ -735,10 +835,10 @@ class SMSecureCrt(SessionMaker):
         xml_obj = SMXml()
         return xml_obj.parse_xml_file(self._settings["scrt"]["template"]["firewall"])
 
-    def __xml_tpl_get_session(self):
-        """Return session template Element object"""
+    def __xml_tpl_get_session_ssh(self):
+        """Return SSH session template Element object"""
         xml_obj = SMXml()
-        return xml_obj.parse_xml_file(self._settings["scrt"]["template"]["session"])
+        return xml_obj.parse_xml_file(self._settings["scrt"]["template"]["session_ssh"])
 
     ### public methods
 

@@ -1,4 +1,4 @@
-<!-- default session XML template -->
+<!-- default SSH session XML template -->
 <key name="DEFAULT_SESSION">
 	<!-- settings from excel -->
 	<string name="Hostname"></string>
@@ -7,7 +7,7 @@
 	<string name="Credential Title"></string>
 	<string name="Keyword Set"></string>
 	<string name="Color Scheme">Chalkboard</string>
-	<string name="Firewall Name"></string>
+	<string name="Firewall Name">None</string>
 
 	<!-- default settings -->
 	<string name="SSH2 Authentications V2">keyboard-interactive,password</string>

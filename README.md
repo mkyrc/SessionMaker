@@ -12,6 +12,8 @@
 
 - [SessionMaker](#sessionmaker)
   - [Description](#description)
+    - [Important news](#important-news)
+    - [Supported features](#supported-features)
   - [Session Maker](#session-maker)
     - [Usage](#usage)
     - [Example](#example)
@@ -30,27 +32,37 @@
 
 ## Description
 
-Excel workbook to SecureCRT and/or Devolutions RDM sessions (and vice-versa) converter. The goal of the project is to make life easier for network engineers ;).
+Excel workbook to SecureCRT and/or Devolutions RDM sessions (and vice-versa) converter. The goal of the project is to make life easier for network engineers ;-).
+
+> **Important:**<br>
+> Session Reader or Session Maker never works with passwords! There is possible define only usernames (including credentials).
 
 There are two parts:
 
-- [**Session Maker**](#session-maker) - Generate SecureCRT XML or Devolutions RDM JSON file from Excel book source (Excel -> XML/JSON)
-- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT XML sessions export file (XML -> Excel)
+- [**Session Maker**](#session-maker) - Generate SecureCRT `XML` or Devolutions RDM `JSON` file from Excel book source (Excel -> XML/JSON)
+- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT `XML` sessions export file (XML -> Excel).
 
-Supported features:
+### Important news
 
-- Folders (paths to session)
-- SSH sessions only
-- Username and/or Credentials (SecureCRT, Devolutions RDM)
-- Firewall groups (SecureCRT)
-- Colorscheme and keywords to session (SecureCRT)
+- Starting version 0.3.0 are worksheets or/and column names for unused settings not required.
 
-> **Important:**<br>
-> Session Reader or Session Maker never works with sensitive data (e.g. passwords)! There is possible define only usernames (including credentials).
+### Supported features
+
+| Feature         | SecureCRT | Devolution RDM | Description                                                 |
+| --------------- | :-------: | :------------: | ----------------------------------------------------------- |
+| Folders         |    yes    |      yes       | Path to session (or any other object, e.g. credentials,...) |
+| Username        |    yes    |      yes       | Username (not used when credentials is defined)             |
+| Credentials     |    yes    |      yes       | Credentials definitions (higher preference than username)   |
+| SSH Session     |    yes    |      yes       | SSH session support                                         |
+| RDP Session     |    no     |      yes       | RDP session support                                         |
+| WEB Session     |    no     |      yes       | WEB session support                                         |
+| Colorscheme     |    yes    |       no       | Terminal colorscheme                                        |
+| Keywords        |    yes    |       no       | Keyword highlighting (per session)                          |
+| Firewall groups |    yes    |       no       | Firewall groups definition (SecureCRT feature)              |
 
 ## Session Maker
 
-Reads Excel workbook and generate SecureCRT sessions content (XML) or Devolutions RDM connections (JSON).
+Reads Excel workbook and generate SecureCRT sessions content (XML file) or Devolutions RDM connections (JSON file).
 
 ```mermaid
 graph LR;
@@ -85,13 +97,13 @@ options:
 
 XML content can be exported to:
 
-- **file**: option `--write`. if not defined, the file is stored in `export` subfolder
-- **stdout**: option `--print`
+- **file**: Option `--write`. If not defined, the file is stored in `export` subfolder
+- **stdout**: Option `--print`.
 
 ### Example
 
 <details>
-  <summary>Show example</summary>
+  <summary>Show Excel -> SecureCRT example</summary>
 
 **Source file**
 
@@ -99,7 +111,7 @@ Excel (source) file:
 
 ```
 $ ls data/EXAMPLE/
-devices.xlsx
+devices-v0.3.x.xlsx
 ```
 
 **Build process**
@@ -107,11 +119,14 @@ devices.xlsx
 Build XML content for SecureCRT from Excel source:
 
 ```
-$ python3 session_maker.py  data/EXAMPLE/devices.xlsx
+$ python3 session_maker.py data/EXAMPLE/devices-v0.3.x.xlsx
 Reading arguments...
 Done.
-Exporting sessions for SecureCRT...
-Exported: 5 sessions, 2 credential groups, 2 firewall groups.
+Reading Excel book...
+Done: 4 sessions (ssh: 4), 2 credential group(s), 0 firewall group(s) from Excel.
+Building sessions...
+Done.
+Writing to 'data/EXAMPLE/export/devices-v0.3.x.xml'...
 Done.
 ```
 
@@ -121,14 +136,52 @@ XML file is exported to `export` subfolder (because option `--write` or `--print
 
 ```
 $ ls data/EXAMPLE/export/
-devices.xml
+devices-v0.3.x.xml
+```
+</details>
+
+<details>
+  <summary>Show Excel -> Devolution RDM example</summary>
+
+**Source file**
+
+Excel (source) file:
+
+```
+$ ls data/EXAMPLE/
+devices-v0.3.x.xlsx
 ```
 
+**Build process**
+
+Build XML content for SecureCRT from Excel source:
+
+```
+$ python3 session_maker.py data/EXAMPLE/devices-v0.3.x.xlsx --type rdm
+
+Reading arguments...
+Done.
+Reading Excel book...
+Done. 12 session(s) (ssh: 4, rdp: 4, web: 4), 2 credential(s) from Excel.
+Building sessions...
+Done.
+Writing to 'data/EXAMPLE/export/devices-v0.3.x.json'...
+Done.
+```
+
+**Destination file**
+
+JSON file is exported to `export` subfolder (because option `--write` or `--print` is not defined):
+
+```
+$ ls data/EXAMPLE/export/
+devices-v0.3.x.json
+```
 </details>
 
 ## Session Reader
 
-Reads SecureCRT sessions file (SecureCRT menu: `Tools -> Export settings...`) and export it to Excel workbook.
+Reads SecureCRT sessions XML file (SecureCRT menu: `Tools -> Export settings...`) and export it to Excel workbook.
 
 ```mermaid
 graph LR;
@@ -162,7 +215,7 @@ If `--write` option is not defined, destination file is exported to `export` sub
 ### Example
 
 <details>
-  <summary>Show example</summary>
+  <summary>SecureCRT (XML) -> Excel example</summary>
 
 **Source file**
 
@@ -170,7 +223,7 @@ SecureCRT (source) file (it is previously generated Excel file):
 
 ```
 $ ls data/EXAMPLE/export/
-devices.xml
+devices-v0.3.x.xml
 ```
 
 **Build process**
@@ -178,11 +231,11 @@ devices.xml
 Generate Excel file from SecureCRT XML source file:
 
 ```
-$ python session_reader.py data/EXAMPLE/export/devices.xml
+$ python3 session_reader.py data/EXAMPLE/export/devices-v0.3.x.xml
 Reading arguments...
 Done.
-Read SecureCRT sessions XML file...
-Done. Imported: 5 sessions, 2 credential groups, 2 firewall groups.
+Reading SecureCRT sessions XML file...
+Done. 4 session(s), 2 credential group(s), 0 firewall group(s) from XML file.
 Writing Excel file...
 Done.
 ```
@@ -195,6 +248,7 @@ Excel workbook is exported to `export` subfolder (because option `--write` is no
 $ ls data/EXAMPLE/export/export/
 devices.xlsx
 ```
+
 </details>
 
 ## Excel workbook structure
@@ -207,22 +261,33 @@ Excel workbook contains 4 worksheets:
 - **[scrt-firewalls](#scrt-firewalls-worksheet-columns)**: SecureCRT firewall groups list
 
 > **Note:** <br>
-> All column names described below can be changed in `config.yaml` file.
+> All column names described below can be changed in [config.yaml](config.yaml) file.
+
 
 ### 'sessions' worksheet columns
 
-| column name      | required | default | description                                            |
-| ---------------- | :------: | ------- | ------------------------------------------------------ |
-| folder           |          |         | Path/hierarchy to session                              |
-| session          |   yes    |         | Session name                                           |
-| hostname         |          |         | Device hostname (DNS name or IP address)               |
-| port             |          | 22      | TCP port                                               |
-| username         |          |         | Username                                               |
-| rdm credential   |          |         | RDM: Credential name                                   |
-| credential group |          |         | SCRT: Credential group name                            |
-| colorscheme      |          |         | SCRT: Color Scheme name                                |
-| keywords         |          |         | SCRT: Keyword Highlighting List name                   |
-| firewall group   |          |         | SCRT: Firewall group or Session name (path/to/session) |
+| column name (Excel)     | required | default    | description                                                    |
+| ----------------------- | :------: | ---------- | -------------------------------------------------------------- |
+| folder                  |          |            | Path/hierarchy to session                                      |
+| session                 |   yes    |            | Session name                                                   |
+| hostname                |          |            | Device hostname (DNS name or IP address)                       |
+| type                    |   yes    |            | Session type: [ssh \| rdp \| web]                              |
+| port                    |          | 22 or 3389 | TCP port (default: 22 for SSH, 3389 for RDP, not used for WEB) |
+| username                |          |            | Username                                                       |
+| rdp alternative         |          |            | RDP alternative shell                                          |
+| **Devolution RDM only** |
+| rdm credential          |          |            | Credential name                                                |
+| web login form          |          |            | WEB session: Login form name (HTML id)                         |
+| web login field         |          |            | WEB session: Login field name (HTML id)                        |
+| web passwd field        |          |            | WEB session: Password field name (HTML id)                     |
+| **SecureCRT only**      |
+| scrt credentials        |          |            | Credential group name                                          |
+| scrt colorscheme        |          |            | Color Scheme name                                              |
+| scrt keywords           |          |            | Keyword Highlighting List name                                 |
+| scrt firewall group     |          |            | Firewall group or Session name (path/to/session)               |
+
+> **Note:**
+> For details see `['excel']['col_names_sessions']` in [config.yaml](config.yaml) file.
 
 ### 'rdm-credentials' worksheet columns
 
@@ -232,12 +297,18 @@ Excel workbook contains 4 worksheets:
 | credential name |   yes    |         | Credential name    |
 | username        |          |         | Username           |
 
+> **Note:**
+> For details see `['excel']['col_names_rdm_credentials']` in [config.yaml](config.yaml) file.
+
 ### 'scrt-credentials' worksheet columns
 
 | column name      | required | default | description           |
 | ---------------- | :------: | ------- | --------------------- |
 | credential group |   yes    |         | Credential group name |
 | username         |          |         | Username              |
+
+> **Note:**
+> For details see `['excel']['col_names_scrt_credentials']` in [config.yaml](config.yaml) file.
 
 ### 'scrt-firewalls' worksheet columns
 
@@ -248,9 +319,12 @@ Excel workbook contains 4 worksheets:
 | port           |          |         | TCP port               |
 | username       |          |         | Username               |
 
+> **Note:**
+> For details see `['excel']['col_names_scrt_firewalls']` in [config.yaml](config.yaml) file.
+
 ## Configuration
 
-Excel worksheet names, column names and SecureCRT custom settings (not configurable by Session Maker) are configurable. For more detials see [config.yaml](config.yaml) file.
+Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize For more detials see [config.yaml](config.yaml) file.
 
 ## Versioning
 

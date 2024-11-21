@@ -58,7 +58,7 @@ class SMDevolutionsRdm(SessionMaker):
     # ========================================
 
     def excel_read_sheet_credentials(self, sheet_name: str) -> dict | list | bool:
-        """Read excel sheet 'rdm-credentials' and return content as dict/array.
+        """Read excel sheet 'rdm_credentials' and return content as dict/array.
 
         Args:
             sheet_name (str): Sheet's name
@@ -114,8 +114,8 @@ class SMDevolutionsRdm(SessionMaker):
         super().set_sessions_dict(sessions)
 
         excel_col_name = self._settings["excel"]["col_names_sessions"]
-        # keys = ["rdm-credential", "credential", "colorscheme", "keywords", "firewall"]
-        keys = ["rdm-credential"]
+        # keys = ["rdm_credential", "credential", "colorscheme", "keywords", "firewall"]
+        keys = ["rdm_credential"]
 
         if sessions is None or len(sessions) == 0:
             for key in excel_col_name:
@@ -390,7 +390,9 @@ class SMDevolutionsRdm(SessionMaker):
             conn_obj["Terminal"]["Username"] = username
 
         # credential
-        if username == "" and credential != "":
+        # if username and vault is configured, use vault.
+        # if username == "" and credential != "":
+        if credential != "":
             conn_obj["CredentialConnectionSavedPath"] = credential
             credential_uuid = self.__get_rdm_connection_uuid(credential)
             conn_obj["CredentialConnectionID"] = credential_uuid
@@ -413,7 +415,7 @@ class SMDevolutionsRdm(SessionMaker):
         conn_path_list = connection_path.split("\\")
         for conn_obj in self.__rdm_connection_list:
             if (
-                conn_obj["Group"] == "\\".join(conn_path_list[0:-1])
+                 conn_obj["Group"].rstrip("\\") == "\\".join(conn_path_list[0:-1])
                 and conn_obj["Name"] == conn_path_list[-1]
             ):
                 if conn_obj["ConnectionType"] == 26:
@@ -473,7 +475,7 @@ class SMDevolutionsRdm(SessionMaker):
                 hostname=self._sessions_dict["hostname"][idx],
                 port=self._sessions_dict["port"][idx],
                 username=self._sessions_dict["username"][idx],
-                credential=self._sessions_dict["rdm-credential"][idx],
+                credential=self._sessions_dict["rdm_credential"][idx],
             )
 
     def __credentials_dict_to_json_connections(self):

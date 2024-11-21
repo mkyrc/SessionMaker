@@ -18,13 +18,13 @@ excel:
     username: username
 
     # Devolutions RDM values:
-    rdm-credential: rdm credential
+    rdm_credential: rdm credential
 
     # SecureCRT values:
-    scrt-credential: credential group
-    scrt-colorscheme: colorscheme
-    scrt-keywords: keywords
-    scrt-firewall: firewall group
+    scrt-credential: scrt credential
+    scrt-colorscheme: scrt colorscheme
+    scrt-keywords: scrt keywords
+    scrt-firewall: scrt firewall group
 
   # SCRT: column names for 'scrt-credentials' tab
   col_names_scrt_credentials:

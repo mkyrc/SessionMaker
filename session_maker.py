@@ -60,15 +60,15 @@ def main():
     # destination file (xml or json)
     # if undefined, export to 'export' subfolder
     if not ARGS.print:
-        if ARGS.write != None:
+        if ARGS.write:
             dst_file = ARGS.write
         else:
             src_folder = os.path.split(ARGS.source)
             filename = Path(src_folder[1]).stem
             if ARGS.type == "scrt":
-                dst_file = src_folder[0] + "/export/" + filename + ".xml"
+                dst_file = src_folder[0] + "/export/" + filename + "-scrt.xml"
             if ARGS.type == "rdm":
-                dst_file = src_folder[0] + "/export/" + filename + ".json"
+                dst_file = src_folder[0] + "/export/" + filename + "-rdm.json"
 
     if not ARGS.quiet:
         print("Done.")

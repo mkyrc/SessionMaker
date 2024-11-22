@@ -7,6 +7,7 @@ excel:
   tab_scrt_credentials: scrt-credentials
   tab_scrt_firewalls: scrt-firewalls
   tab_rdm_credentials: rdm-credentials
+  tab_rdm_hosts: rdm-hosts
 
   # column names for 'sessions' tab
   col_names_sessions:
@@ -20,6 +21,7 @@ excel:
 
     # Devolutions RDM values:
     rdm_credential: rdm credential
+    rdm_host: rdm host
 
     # SecureCRT values:
     scrt_credential: scrt credential
@@ -44,6 +46,12 @@ excel:
     folder: folder
     credential: credential name
     username: username
+
+  col_names_rdm_hosts:
+    folder: folder
+    name: name
+    host: host
+    rdm_vault: rdm vault
 
 # ==========
 # SecureCRT settings

@@ -32,9 +32,12 @@ from lib.sm_rdm import SMDevolutionsRdm
 # Main functions
 # ====================
 
+# global ARGS
+
+
 def main():
     """Main function of the script"""
-    
+
     ARGS = parse_maker_args()
     init_logging(ARGS.verbose)
 
@@ -72,10 +75,10 @@ def main():
             filename = Path(src_folder[1]).stem
             current_date = datetime.now().strftime("%Y%m%d")
 
-            if ARGS.type == "scrt":                
+            if ARGS.type == "scrt":
                 dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-scrt.xml"
             if ARGS.type == "rdm":
-                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdm.xml"
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdm.json"
 
     if not ARGS.quiet:
         print("Done.")
@@ -139,7 +142,7 @@ def scrt_maker(**kwargs):
     )
 
     if sessions_dict == False or credentials_dict == False or firewalls_dict == False:
-        if not ARGS.quiet:
+        if not quiet:
             print("Exit.")
         return
 
@@ -191,7 +194,13 @@ def scrt_maker(**kwargs):
         print("Done.")
 
 
-def rdm_maker(src_file=None, dst_file=None, settings=None, quiet=False, stdout=False):
+def rdm_maker(
+    src_file: str | None = None,
+    dst_file: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
     """
     Generates Devolutions RDM sessions from an Excel file and exports them to JSON.
 
@@ -230,23 +239,28 @@ def rdm_maker(src_file=None, dst_file=None, settings=None, quiet=False, stdout=F
     credentials_dict = sm_rdm.excel_read_sheet_credentials(
         settings["excel"]["tab_rdm_credentials"]
     )
+    hosts_dict = sm_rdm.excel_read_sheet_rdm_hosts(settings["excel"]["tab_rdm_hosts"])
 
     if sessions_dict is False or credentials_dict is False:
-        if not ARGS.quiet:
+        if not quiet:
             print("Exit.")
         return
 
     # summary
     if not quiet:
+        c_s = sm_rdm.get_sessions_dict_count(["ssh", "rdp", "web"])
+        c_s_ssh = sm_rdm.get_sessions_dict_count(["ssh"])
+        c_s_rdp = sm_rdm.get_sessions_dict_count(["rdp"])
+        c_s_web = sm_rdm.get_sessions_dict_count(["web"])
+        c_cred = sm_rdm.get_credentials_dict_count()
+        c_host = sm_rdm.get_rdm_hosts_dict_count()
+        
+        p_sessions = f"{c_s} session(s) (ssh: {c_s_ssh}, rdp: {c_s_rdp}, web: {c_s_web})"
+        p_credentials = f"{c_cred} credential(s)"
+        p_hosts = f"{c_host} host(s)"
+
         print(
-            "Done. %d session(s) (ssh: %s, rdp: %s, web: %s), %d credential(s) from Excel."
-            % (
-                sm_rdm.get_sessions_dict_count(["ssh", "rdp", "web"]),
-                sm_rdm.get_sessions_dict_count(["ssh"]),
-                sm_rdm.get_sessions_dict_count(["rdp"]),
-                sm_rdm.get_sessions_dict_count(["web"]),
-                sm_rdm.get_credentials_dict_count(),
-            )
+            f"Done. {p_sessions}, {p_credentials}, {p_hosts} from Excel."
         )
 
     # Building Devolutions RDM sessions
@@ -289,5 +303,5 @@ def rdm_maker(src_file=None, dst_file=None, settings=None, quiet=False, stdout=F
 # ====================
 
 if __name__ == "__main__":
- 
+
     main()

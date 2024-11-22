@@ -117,7 +117,7 @@ class SMDevolutionsRdm(SessionMaker):
                                 credentials["credential"]
                             )
 
-    def set_json_file(self, json_file: str, read_json_file=False):
+    def set_json_file(self, json_file: str|None=None, read_json_file=False):
         """Set JSON file attribute. If read_json_file is True, read content.
 
         Args:

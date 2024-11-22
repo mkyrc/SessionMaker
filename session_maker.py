@@ -16,6 +16,7 @@ Revision:
 # import logging
 import os.path
 from pathlib import Path
+from datetime import datetime
 
 # import lib
 from lib.parseargs import parse_maker_args
@@ -31,9 +32,11 @@ from lib.sm_rdm import SMDevolutionsRdm
 # Main functions
 # ====================
 
-
 def main():
     """Main function of the script"""
+    
+    ARGS = parse_maker_args()
+    init_logging(ARGS.verbose)
 
     ## default settings
     config_file = "config.yaml"  # default settings file
@@ -67,10 +70,12 @@ def main():
         else:
             src_folder = os.path.split(ARGS.source)
             filename = Path(src_folder[1]).stem
-            if ARGS.type == "scrt":
-                dst_file = src_folder[0] + "/export/" + filename + "-scrt.xml"
+            current_date = datetime.now().strftime("%Y%m%d")
+
+            if ARGS.type == "scrt":                
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-scrt.xml"
             if ARGS.type == "rdm":
-                dst_file = src_folder[0] + "/export/" + filename + "-rdm.json"
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdm.xml"
 
     if not ARGS.quiet:
         print("Done.")
@@ -186,15 +191,29 @@ def scrt_maker(**kwargs):
         print("Done.")
 
 
-def rdm_maker(**kwargs):
-    """Export session to DevolutionsRDM - by settings source file only."""
+def rdm_maker(src_file=None, dst_file=None, settings=None, quiet=False, stdout=False):
+    """
+    Generates Devolutions RDM sessions from an Excel file and exports them to JSON.
+
+    Args:
+        src_file (str, optional): Path to the source Excel file. Defaults to None.
+        dst_file (str, optional): Path to the destination JSON file. Defaults to None.
+        settings (dict, optional): Configuration settings for reading and processing the Excel file. Defaults to {}.
+        quiet (bool, optional): If True, suppresses output messages. Defaults to False.
+        stdout (bool, optional): If True, prints the JSON content to stdout instead of writing to a file. Defaults to False.
+
+    Returns:
+        None
+    """
 
     # arguments
-    settings = kwargs.get("settings", {})
-    src_file = kwargs.get("src_file", "")  # src Excel file
-    dst_file = kwargs.get("dst_file", "")  # dst JSON file
-    quiet = kwargs.get("quiet", False)
-    stdout = kwargs.get("stdout", False)
+    # settings = kwargs.get("settings", {})
+    # src_file = kwargs.get("src_file", "")  # src Excel file
+    # dst_file = kwargs.get("dst_file", "")  # dst JSON file
+    # quiet = kwargs.get("quiet", False)
+    # stdout = kwargs.get("stdout", False)
+    if settings is None:
+        settings = {}
 
     # Reading Excel
     # ==========
@@ -212,7 +231,7 @@ def rdm_maker(**kwargs):
         settings["excel"]["tab_rdm_credentials"]
     )
 
-    if sessions_dict == False or credentials_dict == False:
+    if sessions_dict is False or credentials_dict is False:
         if not ARGS.quiet:
             print("Exit.")
         return
@@ -222,10 +241,10 @@ def rdm_maker(**kwargs):
         print(
             "Done. %d session(s) (ssh: %s, rdp: %s, web: %s), %d credential(s) from Excel."
             % (
-                sm_rdm.get_sessions_dict_count(["ssh","rdp","web"]),
+                sm_rdm.get_sessions_dict_count(["ssh", "rdp", "web"]),
                 sm_rdm.get_sessions_dict_count(["ssh"]),
-                sm_rdm.get_sessions_dict_count(["rdp"]),                
-                sm_rdm.get_sessions_dict_count(["web"]),                
+                sm_rdm.get_sessions_dict_count(["rdp"]),
+                sm_rdm.get_sessions_dict_count(["web"]),
                 sm_rdm.get_credentials_dict_count(),
             )
         )
@@ -238,7 +257,7 @@ def rdm_maker(**kwargs):
 
     rdm_json = sm_rdm.build_json_from_dict()
 
-    if rdm_json == None:
+    if rdm_json is None:
         if not quiet:
             print("No sessions. Exit.")
         return
@@ -270,6 +289,5 @@ def rdm_maker(**kwargs):
 # ====================
 
 if __name__ == "__main__":
-    ARGS = parse_maker_args()
-    init_logging(ARGS.verbose)
+ 
     main()

@@ -11,11 +11,13 @@ Version list:
         - initial version
 
 """
+
 import logging
 import os.path
 from pathlib import Path
 
 import json
+
 
 # ========================================
 # Class SMJson
@@ -76,11 +78,31 @@ class SMJson:
         # if json_file != "" and read_json_file:
         #     self.parse_json_file()
 
-    def write_json_file(self, **kwargs) -> None:
-        """Write JSON content to file."""
+    def write_json_file(self, json_file: str | None = None, json_content=None) -> None:
+        """
+        Writes JSON content to a specified file.
+        
+        Args:
+            json_file (str | None, optional): The path to the JSON file. If None, defaults to self.json_file.
+            json_content (any, optional): The content to be written to the JSON file. If None, defaults to self._json_content.
+        
+        Raises:
+            FileNotFoundError: If the specified file path does not exist and cannot be created.
+        
+        Logs:
+            Info: When creating subfolders that do not exist.
+            Warning: If the destination file already exists and will be overwritten.
+            Error: If unable to write to the JSON file due to a FileNotFoundError.
+        """
+        
 
-        json_file = str(kwargs.get("json_file", self.json_file))
-        json_content = kwargs.get("json_content", self._json_content)
+        # json_file = str(kwargs.get("json_file", self.json_file))
+        if json_file is None:
+            json_file = self.json_file
+
+        # json_content = kwargs.get("json_content", self._json_content)
+        if json_content is None:
+            json_content = self._json_content
 
         json_object = json.dumps(json_content, indent=4)
 
@@ -95,7 +117,7 @@ class SMJson:
 
         # write to file
         try:
-            with open(json_file, "w") as outfile:
+            with open(json_file, "w", encoding="utf8") as outfile:
                 outfile.write(json_object)
         except FileNotFoundError as err:
             logging.error(

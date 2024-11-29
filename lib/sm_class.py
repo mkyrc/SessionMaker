@@ -26,41 +26,53 @@ class SessionMaker:
         _settings
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        settings: dict | None = None,
+        excel_file: str | None = None,
+        read_excel_file=False,
+        xml_file="",
+        read_xml_file=False,
+        # json_file="",
+        # read_json_file=False,
+        **kwargs,
+    ):
         """Initial class method.
 
         Args:
-            settings (dict):    Configuration settings content (default: config.yaml)
-            excel_file (str):   Excel file path (source or destination). Default: "".
-            xml_file (str):     XML file path 9source or destination). Default: ""
-            sessions (dict):    Sessions dictionary (default: create empty).
+            settings (dict): Configuration settings content (default: config.yaml)
+            excel_file (str): Excel file path (source or destination). Default: "".
+            read_excel_file (bool):  Read excel file? Default: False.
+            xml_file (str): XML file path (source or destination). Default: ""
+            read_xml_file (bool):  Read xml file? Default: False.
+            json_file (str): XML file path (source or destination). Default: ""
+            read_json_file (bool):  Read xml file? Default: False.
+            # sessions (dict): essions dictionary (default: create empty).
         """
 
         # settings (dict, config.yaml content)
-        self._settings = dict()
-        self.set_settings(kwargs.get("settings", dict()))
+        if settings is None:
+            self._settings = {}
+        else:
+            self.set_settings(settings)
 
         # excel_file path (str). if set, initiate excel_obj
         self.excel_file = ""
         self._excel_obj = SMExcel(settings=self._settings, read_excel_file=False)
-        self.set_excel_file(
-            kwargs.get("excel_file", ""), kwargs.get("read_excel_file", False)
-        )
+        self.set_excel_file(excel_file, read_excel_file)
 
         # sessions (ordered dict)
-        self._sessions_dict = dict()
+        self._sessions_dict = {}
         # self.set_sessions_dict(kwargs.get("sessions", None))
 
         # credential groups dict
-        self._credentials_dict = dict()
+        self._credentials_dict = {}
 
         # XML file
         self.xml_file = ""
         self._xml_obj = SMXml()
         self._xml_sessions = None
-        self.set_xml_file(
-            kwargs.get("xml_file", ""), kwargs.get("read_xml_file", False)
-        )
+        self.set_xml_file(xml_file, read_xml_file)
 
         # XML file to export to XLS
         self._sessions_dict_file_xml = ""
@@ -140,7 +152,7 @@ class SessionMaker:
         self._xml_sessions = SMXml(xml_file=xml_file).parse_xml_file()
         return self._xml_sessions
 
-    def set_excel_file(self, excel_file: str, read_excel_file=False):
+    def set_excel_file(self, excel_file: str | None = None, read_excel_file=False):
         """Set excel_file attribute.
 
         Args:
@@ -148,7 +160,7 @@ class SessionMaker:
         """
         self.excel_file = excel_file
 
-        if self.excel_file != "" and read_excel_file:
+        if self.excel_file is not None and read_excel_file:
             self.excel_read_book()
 
     def set_json_file(self, json_file: str, read_json_file=False):
@@ -164,7 +176,7 @@ class SessionMaker:
         #     # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
         #     self.parse_json_file()
 
-    def set_xml_file(self, xml_file: str, read_xml_file=False):
+    def set_xml_file(self, xml_file: str|None, read_xml_file=False):
         """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:
@@ -176,7 +188,7 @@ class SessionMaker:
             # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
             self.parse_xml_file()
 
-    def set_sessions_dict(self, sessions=None):
+    def set_sessions_dict(self, sessions=None) -> bool:
         """Set sessions dictionary. If not set initiate it.
 
         Args:
@@ -184,6 +196,7 @@ class SessionMaker:
 
         Return:
             False in case of error (missing required column)
+            True when success
         """
         excel_col_name = self._settings["excel"]["col_names_sessions"]
         keys = [
@@ -217,11 +230,13 @@ class SessionMaker:
                                 "Missing required column '%s'.", excel_col_name[key]
                             )
                             return False
-                        else:
-                            logging.warning(
-                                "Creating empty column name '%s'.", excel_col_name[key]
-                            )
-                            self._sessions_dict[key] = [""] * len(sessions["session"])
+
+                        logging.warning(
+                            "Creating empty column name '%s'.", excel_col_name[key]
+                        )
+                        self._sessions_dict[key] = [""] * len(sessions["session"])
+
+        return True
 
     def set_settings(self, settings: dict):
         """Set configuration settings dict (default: config.yaml).
@@ -282,16 +297,16 @@ class SessionMaker:
             False: In case of error
         """
         sessions_dict_ret = self.excel_read_sheet(sheet_name, "column")
-        if sessions_dict_ret == False:
-            sessions_dict = None
-        else:
+        if sessions_dict_ret:
             sessions_dict = self.col_name_normalize(
                 sessions_dict_ret, self._settings["excel"]["col_names_sessions"]
             )
-        if self.set_sessions_dict(sessions_dict) == False:
-            return False
         else:
+            sessions_dict = None
+
+        if self.set_sessions_dict(sessions_dict):
             return self._sessions_dict
+        return False
 
     def col_name_normalize(self, ordered_dict, col_names):
         """Change dictionary key from excel column name to system key defined in config.yaml

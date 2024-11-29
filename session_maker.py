@@ -16,24 +16,24 @@ Revision:
 # import logging
 import os.path
 from pathlib import Path
+from datetime import datetime
 
 # import lib
-from lib.parseargs import parse_maker_args
-from lib.logging import init_logging
-from lib.settings import set_config_file
-from lib.settings import read_config_file
-
-# from lib.sm_excel import SMExcel
-from lib.sm_scrt import SMSecureCrt
-from lib.sm_rdm import SMDevolutionsRdm
+from lib import parse_maker_args, init_logging, set_config_file, read_config_file
+from lib import SMSecureCrt, SMDevolutionsRdm
 
 # ====================
 # Main functions
 # ====================
 
+# global ARGS
+
 
 def main():
     """Main function of the script"""
+
+    ARGS = parse_maker_args()
+    init_logging(ARGS.verbose)
 
     ## default settings
     config_file = "config.yaml"  # default settings file
@@ -67,10 +67,12 @@ def main():
         else:
             src_folder = os.path.split(ARGS.source)
             filename = Path(src_folder[1]).stem
+            current_date = datetime.now().strftime("%Y%m%d")
+
             if ARGS.type == "scrt":
-                dst_file = src_folder[0] + "/export/" + filename + "-scrt.xml"
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-scrt.xml"
             if ARGS.type == "rdm":
-                dst_file = src_folder[0] + "/export/" + filename + "-rdm.json"
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdm.json"
 
     if not ARGS.quiet:
         print("Done.")
@@ -106,15 +108,23 @@ def main():
 # ====================
 
 
-def scrt_maker(**kwargs):
+def scrt_maker(
+    src_file: str | None = None,
+    dst_file: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
     """Reading Excel and export sessions to SecureCRT."""
 
     # arguments
-    settings = kwargs.get("settings", {})
-    src_file = kwargs.get("src_file", "")  # src Excel file
-    dst_file = kwargs.get("dst_file", "")  # dst XML file
-    quiet = kwargs.get("quiet", False)
-    stdout = kwargs.get("stdout", False)
+    # settings = kwargs.get("settings", {})
+    # src_file = kwargs.get("src_file", "")  # src Excel file
+    # dst_file = kwargs.get("dst_file", "")  # dst XML file
+    # quiet = kwargs.get("quiet", False)
+    # stdout = kwargs.get("stdout", False)
+    if settings is None:
+        settings = {}
 
     # Reading Excel
     # ==========
@@ -133,22 +143,22 @@ def scrt_maker(**kwargs):
         settings["excel"]["tab_scrt_firewalls"]
     )
 
-    if sessions_dict == False or credentials_dict == False or firewalls_dict == False:
-        if not ARGS.quiet:
+    if sessions_dict is False or credentials_dict is False or firewalls_dict is False:
+        if not quiet:
             print("Exit.")
         return
 
     # summary
     if not quiet:
-        print(
-            "Done: %d sessions (ssh: %d), %d credential group(s), %d firewall group(s) from Excel."
-            % (
-                sm_scrt.get_sessions_dict_count(["ssh"]),
-                sm_scrt.get_sessions_dict_count(["ssh"]),
-                sm_scrt.get_credentials_dict_count(),
-                sm_scrt.get_firewalls_dict_count(),
-            )
-        )
+        c_s = sm_scrt.get_sessions_dict_count(["ssh"])
+        c_s_ssh = sm_scrt.get_sessions_dict_count(["ssh"])
+        c_cred = sm_scrt.get_credentials_dict_count()
+        c_fw = sm_scrt.get_firewalls_dict_count()
+        p_sessions = f"{c_s} session(s) (ssh: {c_s_ssh})"
+        p_credentials = f"{c_cred} credential(s)"
+        p_firewalls = f"{c_fw} firewall(s)"
+
+        print(f"Done. {p_sessions}, {p_credentials}, {p_firewalls} from Excel.")
 
     # Building SecureCRT sessions
     # ==========
@@ -186,15 +196,35 @@ def scrt_maker(**kwargs):
         print("Done.")
 
 
-def rdm_maker(**kwargs):
-    """Export session to DevolutionsRDM - by settings source file only."""
+def rdm_maker(
+    src_file: str | None = None,
+    dst_file: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
+    """
+    Generates Devolutions RDM sessions from an Excel file and exports them to JSON.
+
+    Args:
+        src_file (str, optional): Path to the source Excel file. Defaults to None.
+        dst_file (str, optional): Path to the destination JSON file. Defaults to None.
+        settings (dict, optional): Configuration settings for reading and processing the Excel file. Defaults to {}.
+        quiet (bool, optional): If True, suppresses output messages. Defaults to False.
+        stdout (bool, optional): If True, prints the JSON content to stdout instead of writing to a file. Defaults to False.
+
+    Returns:
+        None
+    """
 
     # arguments
-    settings = kwargs.get("settings", {})
-    src_file = kwargs.get("src_file", "")  # src Excel file
-    dst_file = kwargs.get("dst_file", "")  # dst JSON file
-    quiet = kwargs.get("quiet", False)
-    stdout = kwargs.get("stdout", False)
+    # settings = kwargs.get("settings", {})
+    # src_file = kwargs.get("src_file", "")  # src Excel file
+    # dst_file = kwargs.get("dst_file", "")  # dst JSON file
+    # quiet = kwargs.get("quiet", False)
+    # stdout = kwargs.get("stdout", False)
+    if settings is None:
+        settings = {}
 
     # Reading Excel
     # ==========
@@ -211,24 +241,30 @@ def rdm_maker(**kwargs):
     credentials_dict = sm_rdm.excel_read_sheet_credentials(
         settings["excel"]["tab_rdm_credentials"]
     )
+    hosts_dict = sm_rdm.excel_read_sheet_rdm_hosts(settings["excel"]["tab_rdm_hosts"])
 
-    if sessions_dict == False or credentials_dict == False:
-        if not ARGS.quiet:
+    # if sessions_dict is False or credentials_dict is False or hosts_dict is False:
+    if sessions_dict is False:
+        if not quiet:
             print("Exit.")
         return
 
     # summary
     if not quiet:
-        print(
-            "Done. %d session(s) (ssh: %s, rdp: %s, web: %s), %d credential(s) from Excel."
-            % (
-                sm_rdm.get_sessions_dict_count(["ssh","rdp","web"]),
-                sm_rdm.get_sessions_dict_count(["ssh"]),
-                sm_rdm.get_sessions_dict_count(["rdp"]),                
-                sm_rdm.get_sessions_dict_count(["web"]),                
-                sm_rdm.get_credentials_dict_count(),
-            )
+        c_s = sm_rdm.get_sessions_dict_count(["ssh", "rdp", "web"])
+        c_s_ssh = sm_rdm.get_sessions_dict_count(["ssh"])
+        c_s_rdp = sm_rdm.get_sessions_dict_count(["rdp"])
+        c_s_web = sm_rdm.get_sessions_dict_count(["web"])
+        c_cred = sm_rdm.get_credentials_dict_count()
+        c_host = sm_rdm.get_rdm_hosts_dict_count()
+
+        p_sessions = (
+            f"{c_s} session(s) (ssh: {c_s_ssh}, rdp: {c_s_rdp}, web: {c_s_web})"
         )
+        p_credentials = f"{c_cred} credential(s)"
+        p_hosts = f"{c_host} host(s)"
+
+        print(f"Done. {p_sessions}, {p_credentials}, {p_hosts} from Excel.")
 
     # Building Devolutions RDM sessions
     # ==========
@@ -238,7 +274,7 @@ def rdm_maker(**kwargs):
 
     rdm_json = sm_rdm.build_json_from_dict()
 
-    if rdm_json == None:
+    if rdm_json is None:
         if not quiet:
             print("No sessions. Exit.")
         return
@@ -270,6 +306,5 @@ def rdm_maker(**kwargs):
 # ====================
 
 if __name__ == "__main__":
-    ARGS = parse_maker_args()
-    init_logging(ARGS.verbose)
+
     main()

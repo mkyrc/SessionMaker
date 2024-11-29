@@ -13,7 +13,16 @@ from .sm_xml import SMXml
 class SMDevolutionsRdm(SessionMaker):
     """SessionMaker - Devolutions RDM sessions generator class"""
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        settings: dict | None = None,
+        excel_file: str | None = None,
+        json_file: str = "",
+        read_excel_file=False,
+        credentails: dict | None = None,
+        hosts: dict | None = None,
+        **kwargs,
+    ):
         """Initial method
 
         Args:
@@ -35,19 +44,25 @@ class SMDevolutionsRdm(SessionMaker):
         # - self._sessions_dict
         # - self._credentials_dict
         # - self._xml_session_file
-        super().__init__(**kwargs)
+        super().__init__(
+            settings,
+            excel_file,
+            read_excel_file=True,
+        )
 
-        # credential groups dict
-        # self._credentials_dict = dict()
-        self.set_credentials_dict(kwargs.get("credentails", None))
+        # rdm credential dict
+        self.set_credentials_dict(credentails)
+
+        # rdm hosts
+        self._rdm_hosts_dict = {}
+        self.set_hosts_dict(hosts)
 
         # JSON file
         self.json_file = ""
-        self._json_sessions = dict()
+        self._json_sessions = {}
+        self._json_hosts = {}
         self.__rdm_connection_list = []
-        self.set_json_file(
-            kwargs.get("json_file", ""), kwargs.get("read_json_file", False)
-        )
+        self.set_json_file(json_file, read_json_file=False)
 
     # ========================================
     # Private methods
@@ -79,6 +94,29 @@ class SMDevolutionsRdm(SessionMaker):
             return False
         else:
             return self._credentials_dict
+
+    def excel_read_sheet_rdm_hosts(self, sheet_name: str) -> dict | list | bool:
+        """Read excel sheet 'rdm_hosts' and return content as dict/array.
+
+        Args:
+            sheet_name (str): Sheet's name
+
+        Returns:
+            ordered dict: Column/Row-based dictionary (when get=['column', 'row']
+            False: In case of error
+        """
+        sheet_dict_ret = self.excel_read_sheet(sheet_name, "column")
+        if sheet_dict_ret is False:
+            content_dict = None
+        else:
+            content_dict = self.col_name_normalize(
+                sheet_dict_ret,
+                self._settings["excel"]["col_names_rdm_hosts"],
+            )
+        if self.set_hosts_dict(content_dict):
+            return self._rdm_hosts_dict
+
+        return False
 
     def set_credentials_dict(self, credentials=None):
         """Set credentials dictionary. If not set, create empty.
@@ -117,7 +155,43 @@ class SMDevolutionsRdm(SessionMaker):
                                 credentials["credential"]
                             )
 
-    def set_json_file(self, json_file: str, read_json_file=False):
+    def set_hosts_dict(self, hosts: dict | None = None):
+        """Set hosts dictionary. If not set, create empty.
+
+        Args:
+            hosts (dict): Ordered dict of RDM credentials.
+        """
+        excel_col_name = self._settings["excel"]["col_names_rdm_hosts"]
+        keys = ["folder", "name", "host", "rdm_vault"]
+        required_keys = ["name"]
+
+        if hosts is None:
+            for key in excel_col_name:
+                self._rdm_hosts_dict[key] = []
+        else:
+            for key in excel_col_name:
+                if key in keys:
+                    try:
+                        self._rdm_hosts_dict[key] = list(map(str, hosts[key]))
+                    except KeyError:
+                        logging.warning(
+                            "Missing column name '%s' (key: '%s').",
+                            excel_col_name[key],
+                            key,
+                        )
+                        if key in required_keys:
+                            logging.error(
+                                "Missing required column '%s'.", excel_col_name[key]
+                            )
+                            return False
+
+                        logging.warning(
+                            "Creating empty column name '%s'.", excel_col_name[key]
+                        )
+                        self._rdm_hosts_dict[key] = [""] * len(hosts["name"])
+        return True
+
+    def set_json_file(self, json_file: str | None = None, read_json_file=False):
         """Set JSON file attribute. If read_json_file is True, read content.
 
         Args:
@@ -130,7 +204,7 @@ class SMDevolutionsRdm(SessionMaker):
         #     # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
         #     self.parse_xml_file()
 
-    def set_sessions_dict(self, sessions=None):
+    def set_sessions_dict(self, sessions=None) -> bool:
         """Set (Devolutions RDM specific fields) session dictionary. If not set, initiate it.
 
         Args:
@@ -139,11 +213,17 @@ class SMDevolutionsRdm(SessionMaker):
         Return:
             False in case of error (missing required column)
         """
-        if super().set_sessions_dict(sessions) == False:
+        if super().set_sessions_dict(sessions) is False:
             return False
 
         excel_col_name = self._settings["excel"]["col_names_sessions"]
-        keys = ["rdm_credential", "rdm_web_form", "rdm_web_login", "rdm_web_passwd"]
+        keys = [
+            "rdm_credential",
+            "rdm_host",
+            "rdm_web_form",
+            "rdm_web_login",
+            "rdm_web_passwd",
+        ]
         required_keys = []
 
         if sessions is None or len(sessions) == 0:
@@ -166,11 +246,13 @@ class SMDevolutionsRdm(SessionMaker):
                                 "Missing required column '%s'.", excel_col_name[key]
                             )
                             return False
-                        else:
-                            logging.warning(
-                                "Creating empty column name '%s'.", excel_col_name[key]
-                            )
-                            self._sessions_dict[key] = [""] * len(sessions["session"])
+
+                        logging.warning(
+                            "Creating empty column name '%s'.", excel_col_name[key]
+                        )
+                        self._sessions_dict[key] = [""] * len(sessions["session"])
+
+        return True
 
     # ====================
     # Prepare XML to ordered dict (From XML to Excel)
@@ -262,6 +344,10 @@ class SMDevolutionsRdm(SessionMaker):
             self.__set_sessions_dict_from_xml(child, folder)
 
     ### public methods
+
+    def get_rdm_hosts_dict_count(self):
+        """Return credentials dictionary size (int)."""
+        return len(self._rdm_hosts_dict["name"])
 
     def build_dict_from_xml(self):
         """Read SecureCRT XML session file and set all dictionaries.
@@ -390,7 +476,18 @@ class SMDevolutionsRdm(SessionMaker):
         #  append folder dict to self.__rdm_connection_list
         self.__rdm_connection_list.append(conn_obj)
 
-    def __build_rdm_connection_rdp_session(self, **kwargs):
+    def __build_rdm_connection_rdp_session(
+        self,
+        folder="",
+        session="",
+        hostname="",
+        port="3389",
+        username="",
+        rdm_credential="",
+        alternate_shell="",
+        rdm_host="",
+        **kwargs,
+    ):
         """Set RDM RDP session (type 1)
 
         Check if RDP session not exists in self.__rdm_connection_list and add it.
@@ -406,16 +503,16 @@ class SMDevolutionsRdm(SessionMaker):
         # TODO
 
         # arguments
-        folder = kwargs.get("folder", "")
+        # folder = kwargs.get("folder", "")
         self.__build_rdm_connection_folder(folder=folder)
-        session = kwargs.get("session", "")
-        hostname = kwargs.get("hostname", "")
-        port = kwargs.get("port", "3389")
-        username = kwargs.get("username", "")
-        credential = kwargs.get("credential", "")
-        credential = credential.replace("/", "\\")
+        # session = kwargs.get("session", "")
+        # hostname = kwargs.get("hostname", "")
+        # port = kwargs.get("port", "3389")
+        # username = kwargs.get("username", "")
+        # credential = kwargs.get("credential", "")
+        rdm_credential = rdm_credential.replace("/", "\\")
         # credential_uuid = self.get_credential()
-        alternate_shell = kwargs.get("alternate_shell", "")
+        # alternate_shell = kwargs.get("alternate_shell", "")
 
         if session == "":
             logging.warning("Session without name. Skipping.")
@@ -441,9 +538,9 @@ class SMDevolutionsRdm(SessionMaker):
             conn_obj["PromptCredentials"] = "true"
 
         # credential
-        if username == "" and credential != "":
-            conn_obj["CredentialConnectionSavedPath"] = credential
-            credential_uuid = self.__get_rdm_connection_uuid(credential)
+        if rdm_credential != "":
+            conn_obj["CredentialConnectionSavedPath"] = rdm_credential
+            credential_uuid = self.__get_rdm_connection_uuid(rdm_credential)
             conn_obj["CredentialConnectionID"] = credential_uuid
 
         # check duplicity
@@ -452,7 +549,17 @@ class SMDevolutionsRdm(SessionMaker):
 
         self.__rdm_connection_list.append(conn_obj)
 
-    def __build_rdm_connection_ssh_session(self, **kwargs):
+    def __build_rdm_connection_ssh_session(
+        self,
+        folder="",
+        session="",
+        hostname="",
+        port="22",
+        username="",
+        rdm_credential="",
+        rdm_host="",
+        # **kwargs,
+    ):
         """Set RDM SSH session (type 77)
 
         Check if SSH session not exists in self.__rdm_connection_list and add it.
@@ -464,30 +571,27 @@ class SMDevolutionsRdm(SessionMaker):
             port (str, optional, default: "22"): port
         """
         # arguments
-        folder = kwargs.get("folder", "")
+        # folder = kwargs.get("folder", "")
         self.__build_rdm_connection_folder(folder=folder)
-        session = kwargs.get("session", "")
-        hostname = kwargs.get("hostname", "")
-        port = kwargs.get("port", "")
-        username = kwargs.get("username", "")
-        credential = kwargs.get("credential", "")
-        credential = credential.replace("/", "\\")
-        # credential_uuid = self.get_credential()
+        # session = kwargs.get("session", "")
+        # hostname = kwargs.get("hostname", "")
+        # port = kwargs.get("port", "")
+        # username = kwargs.get("username", "")
+        # credential = kwargs.get("credential", "")
+        rdm_credential = rdm_credential.replace("/", "\\")
+        rdm_host = rdm_host.replace("/", "\\")
 
         if session == "":
-            logging.warning("Session without name. Skipping.")
+            logging.debug("Session without name. Skipping.")
             return
 
-        conn_obj = dict()
+        conn_obj = {}
         conn_obj["ConnectionType"] = 77
         conn_obj["Group"] = folder
         conn_obj["Name"] = session
-        conn_obj["Terminal"] = dict()
-        if port == "":
-            conn_obj["Terminal"]["Host"] = hostname
-        else:
-            conn_obj["Terminal"]["Host"] = hostname
-            conn_obj["Terminal"]["HostPort"] = port
+        conn_obj["Terminal"] = {}
+        conn_obj["Terminal"]["Host"] = hostname                
+        conn_obj["Terminal"]["HostPort"] = port
 
         # username
         if username != "":
@@ -496,10 +600,18 @@ class SMDevolutionsRdm(SessionMaker):
         # credential
         # if username and vault is configured, use vault.
         # if username == "" and credential != "":
-        if credential != "":
-            conn_obj["CredentialConnectionSavedPath"] = credential
-            credential_uuid = self.__get_rdm_connection_uuid(credential)
+        if rdm_credential != "":
+            conn_obj["CredentialConnectionSavedPath"] = rdm_credential
+            credential_uuid = self.__get_rdm_connection_uuid(rdm_credential)
             conn_obj["CredentialConnectionID"] = credential_uuid
+
+        # host
+        if rdm_host != "":
+            # reference to host object
+            conn_obj["HostSourceMode"] = 1            
+            conn_obj["HostConnectionSavedPath"] = rdm_host
+            host_uuid = self.__get_rdm_connection_uuid(rdm_host)
+            conn_obj["HostConnectionID"] = host_uuid
 
         # check duplicity
         if conn_obj in self.__rdm_connection_list:
@@ -588,10 +700,14 @@ class SMDevolutionsRdm(SessionMaker):
                 and conn_obj["Name"] == conn_path_list[-1]
             ):
                 if conn_obj["ConnectionType"] == 26:
-                    # return conn_obj["CredentialConnectionID"]
+                    # credential obj
                     return conn_obj["ID"]
 
-    def __build_rdm_connection_credential(self, **kwargs):
+                if conn_obj["ConnectionType"] == 53:
+                    # host obj
+                    return conn_obj["ID"]
+
+    def __build_rdm_connection_credential(self, folder="", credential="", username=""):
         """Set RDM Credential (type 26)
 
         Check if credential not exists in self.__rdm_connection_list and add it.
@@ -602,25 +718,74 @@ class SMDevolutionsRdm(SessionMaker):
             username (str, optional, default: ""): username
         """
         # arguments
-        folder = kwargs.get("folder", "")
         self.__build_rdm_connection_folder(folder=folder)
-        credential = kwargs.get("credential", "")
-        username = kwargs.get("username", "")
-        # id = str(uuid.uuid4())
+        # credential = kwargs.get("credential", "")
+        # username = kwargs.get("username", "")
 
-        if credential == "":
+        if credential is None or credential == "":
             logging.warning("Credential without name. Skipping.")
             return
 
-        conn_obj = dict()
+        # object: credential
+        conn_obj = {}
         conn_obj["ConnectionType"] = 26
         conn_obj["Group"] = folder
         conn_obj["Name"] = credential
         conn_obj["CredentialConnectionID"] = str(uuid.uuid4())
         conn_obj["ID"] = str(uuid.uuid4())
-        conn_obj["Credentials"] = dict()
+        conn_obj["Credentials"] = {}
         if username != "":
             conn_obj["Credentials"]["UserName"] = username
+
+        # check duplicity
+        if conn_obj in self.__rdm_connection_list:
+            return
+
+        self.__rdm_connection_list.append(conn_obj)
+
+    def __build_rdm_connection_host(self, folder="", name="", host="", rdm_vault=""):
+        """
+        Builds a Connection object type Host (type 53).
+
+        Args:
+            folder (str): Session path (optional)
+            name (str): Session name (required)
+            host (str): Host/IP (optional)
+            rdm_vault (str): Path to credential (optional)
+
+        Returns:
+            None
+        """
+
+        # build Host object (type 53)
+
+        # arguments
+        self.__build_rdm_connection_folder(folder=folder)
+
+        # rdm_vault
+        # rdm_vault=self._rdm_hosts_dict["rdm_vault"][idx]
+        rdm_vault = rdm_vault.replace("/", "\\")
+
+        if name == "":
+            logging.warning("Host object without name. Skipping.")
+            return
+
+        # object: Host
+        conn_obj = {}
+        conn_obj["ConnectionType"] = 53
+        conn_obj["Group"] = folder
+        conn_obj["Name"] = name
+        # generate unique UUID (when using in other connection types)
+        conn_obj["ID"] = str(uuid.uuid4())
+        # host/ip
+        conn_obj["HostDetails"] = {}
+        if host != "":
+            conn_obj["HostDetails"]["Host"] = host
+        # credential (if defined)
+        if rdm_vault != "":
+            conn_obj["CredentialConnectionSavedPath"] = rdm_vault
+            credential_uuid = self.__get_rdm_connection_uuid(rdm_vault)
+            conn_obj["CredentialConnectionID"] = credential_uuid
 
         # check duplicity
         if conn_obj in self.__rdm_connection_list:
@@ -646,7 +811,8 @@ class SMDevolutionsRdm(SessionMaker):
                     hostname=self._sessions_dict["hostname"][idx],
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
-                    credential=self._sessions_dict["rdm_credential"][idx],
+                    rdm_credential=self._sessions_dict["rdm_credential"][idx],
+                    rdm_host=self._sessions_dict["rdm_host"][idx],
                 )
 
             # rdp session (#1)
@@ -657,7 +823,7 @@ class SMDevolutionsRdm(SessionMaker):
                     hostname=self._sessions_dict["hostname"][idx],
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
-                    credential=self._sessions_dict["rdm_credential"][idx],
+                    rdm_credential=self._sessions_dict["rdm_credential"][idx],
                     alternate_shell=self._sessions_dict["rdp_alternate"][idx],
                 )
 
@@ -693,6 +859,25 @@ class SMDevolutionsRdm(SessionMaker):
 
         return self.__rdm_connection_list
 
+    def __rdm_hosts_dict_to_json_connections(self):
+        """Set __rdm_connection_list from _rdm_hosts_dict"""
+
+        # get credentials/credentials in a loop
+        for idx, host_row in enumerate(self._rdm_hosts_dict["name"]):
+            # get folders structure
+            folder_path = self._rdm_hosts_dict["folder"][idx]
+            folder_path = folder_path.replace("/", "\\")
+
+            # host (#53)
+            self.__build_rdm_connection_host(
+                folder=folder_path,
+                name=self._rdm_hosts_dict["name"][idx],
+                host=self._rdm_hosts_dict["host"][idx],
+                rdm_vault=self._rdm_hosts_dict["rdm_vault"][idx],
+            )
+
+        return self.__rdm_connection_list
+
     ### public methods
 
     def build_json_from_dict(self):
@@ -704,6 +889,7 @@ class SMDevolutionsRdm(SessionMaker):
         """
 
         self.__credentials_dict_to_json_connections()
+        self.__rdm_hosts_dict_to_json_connections()
         self.__sessions_dict_to_json_connections()
         self._json_sessions = dict()
         self._json_sessions["Connections"] = self.__rdm_connection_list

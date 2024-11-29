@@ -8,7 +8,17 @@ import argparse
 # from pathlib import Path
 # from ruamel.yaml import YAML
 
-VERSION = "0.3.0-rc6"
+# VERSION = __version__
+
+def get_version():
+    # Read the version from the VERSION file
+    version_file = "VERSION"
+    try:
+        with open(version_file, "r", encoding="utf8") as file:
+            version = file.read().strip()
+    except FileNotFoundError:
+        version = "unknown"
+    return version
 
 def parse_maker_args():
     """Parse arguments for export sessions
@@ -68,7 +78,7 @@ def parse_maker_args():
     )
     group2.add_argument(        
         "--version", action="version",
-        version = f"{parser.prog} version  {VERSION}"
+        version = f"{parser.prog} version  {get_version()}"
     )    
     arg = parser.parse_args()
 
@@ -121,7 +131,7 @@ def parse_reader_args():
     )
     group2.add_argument(        
         "--version", action="version",
-        version = f"{parser.prog} version  {VERSION}"
+        version = f"{parser.prog} version  {get_version()}"
     ) 
     arg = parser.parse_args()
 

@@ -19,14 +19,8 @@ from pathlib import Path
 from datetime import datetime
 
 # import lib
-from lib.parseargs import parse_maker_args
-from lib.logging import init_logging
-from lib.settings import set_config_file
-from lib.settings import read_config_file
-
-# from lib.sm_excel import SMExcel
-from lib.sm_scrt import SMSecureCrt
-from lib.sm_rdm import SMDevolutionsRdm
+from lib import parse_maker_args, init_logging, set_config_file, read_config_file
+from lib import SMSecureCrt, SMDevolutionsRdm
 
 # ====================
 # Main functions
@@ -114,15 +108,23 @@ def main():
 # ====================
 
 
-def scrt_maker(**kwargs):
+def scrt_maker(
+    src_file: str | None = None,
+    dst_file: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
     """Reading Excel and export sessions to SecureCRT."""
 
     # arguments
-    settings = kwargs.get("settings", {})
-    src_file = kwargs.get("src_file", "")  # src Excel file
-    dst_file = kwargs.get("dst_file", "")  # dst XML file
-    quiet = kwargs.get("quiet", False)
-    stdout = kwargs.get("stdout", False)
+    # settings = kwargs.get("settings", {})
+    # src_file = kwargs.get("src_file", "")  # src Excel file
+    # dst_file = kwargs.get("dst_file", "")  # dst XML file
+    # quiet = kwargs.get("quiet", False)
+    # stdout = kwargs.get("stdout", False)
+    if settings is None:
+        settings = {}
 
     # Reading Excel
     # ==========
@@ -141,22 +143,22 @@ def scrt_maker(**kwargs):
         settings["excel"]["tab_scrt_firewalls"]
     )
 
-    if sessions_dict == False or credentials_dict == False or firewalls_dict == False:
+    if sessions_dict is False or credentials_dict is False or firewalls_dict is False:
         if not quiet:
             print("Exit.")
         return
 
     # summary
     if not quiet:
-        print(
-            "Done: %d sessions (ssh: %d), %d credential group(s), %d firewall group(s) from Excel."
-            % (
-                sm_scrt.get_sessions_dict_count(["ssh"]),
-                sm_scrt.get_sessions_dict_count(["ssh"]),
-                sm_scrt.get_credentials_dict_count(),
-                sm_scrt.get_firewalls_dict_count(),
-            )
-        )
+        c_s = sm_scrt.get_sessions_dict_count(["ssh"])
+        c_s_ssh = sm_scrt.get_sessions_dict_count(["ssh"])
+        c_cred = sm_scrt.get_credentials_dict_count()
+        c_fw = sm_scrt.get_firewalls_dict_count()
+        p_sessions = f"{c_s} session(s) (ssh: {c_s_ssh})"
+        p_credentials = f"{c_cred} credential(s)"
+        p_firewalls = f"{c_fw} firewall(s)"
+
+        print(f"Done. {p_sessions}, {p_credentials}, {p_firewalls} from Excel.")
 
     # Building SecureCRT sessions
     # ==========
@@ -241,7 +243,8 @@ def rdm_maker(
     )
     hosts_dict = sm_rdm.excel_read_sheet_rdm_hosts(settings["excel"]["tab_rdm_hosts"])
 
-    if sessions_dict is False or credentials_dict is False:
+    # if sessions_dict is False or credentials_dict is False or hosts_dict is False:
+    if sessions_dict is False:
         if not quiet:
             print("Exit.")
         return
@@ -254,14 +257,14 @@ def rdm_maker(
         c_s_web = sm_rdm.get_sessions_dict_count(["web"])
         c_cred = sm_rdm.get_credentials_dict_count()
         c_host = sm_rdm.get_rdm_hosts_dict_count()
-        
-        p_sessions = f"{c_s} session(s) (ssh: {c_s_ssh}, rdp: {c_s_rdp}, web: {c_s_web})"
+
+        p_sessions = (
+            f"{c_s} session(s) (ssh: {c_s_ssh}, rdp: {c_s_rdp}, web: {c_s_web})"
+        )
         p_credentials = f"{c_cred} credential(s)"
         p_hosts = f"{c_host} host(s)"
 
-        print(
-            f"Done. {p_sessions}, {p_credentials}, {p_hosts} from Excel."
-        )
+        print(f"Done. {p_sessions}, {p_credentials}, {p_hosts} from Excel.")
 
     # Building Devolutions RDM sessions
     # ==========

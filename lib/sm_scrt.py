@@ -193,7 +193,7 @@ class SMSecureCrt(SessionMaker):
         Return:
             False: In case if not all required data are loaded
         """
-        if super().set_sessions_dict(sessions) == False:
+        if super().set_sessions_dict(sessions) is False:
             return False
 
         excel_col_name = self._settings["excel"]["col_names_sessions"]
@@ -209,7 +209,7 @@ class SMSecureCrt(SessionMaker):
                 if key in keys:
                     try:
                         self._sessions_dict[key] = list(map(str, sessions[key]))
-                    except KeyError as err:
+                    except KeyError:
                         logging.warning(
                             "Missing column name '%s' (key: '%s').",
                             excel_col_name[key],
@@ -225,6 +225,7 @@ class SMSecureCrt(SessionMaker):
                                 "Creating empty column name '%s'.", excel_col_name[key]
                             )
                             self._sessions_dict[key] = [""] * len(sessions["session"])
+        return True
 
     # ====================
     # Prepare XML to ordered dict (From XML to Excel)

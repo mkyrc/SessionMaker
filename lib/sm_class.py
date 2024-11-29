@@ -176,7 +176,7 @@ class SessionMaker:
         #     # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
         #     self.parse_json_file()
 
-    def set_xml_file(self, xml_file: str, read_xml_file=False):
+    def set_xml_file(self, xml_file: str|None, read_xml_file=False):
         """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:

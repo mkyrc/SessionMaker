@@ -189,6 +189,7 @@ class SMDevolutionsRdm(SessionMaker):
                             "Creating empty column name '%s'.", excel_col_name[key]
                         )
                         self._rdm_hosts_dict[key] = [""] * len(hosts["name"])
+        return True
 
     def set_json_file(self, json_file: str | None = None, read_json_file=False):
         """Set JSON file attribute. If read_json_file is True, read content.

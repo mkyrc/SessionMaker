@@ -1,0 +1,15 @@
+# Default session settings
+# Connection type #77: SSH
+ssh:
+  excel:
+    port: 24
+    username: username
+    rdm_credential: MVSR-mpls/mvsr-cyauser-ssh
+    rdm_host: MVSR-mpls/mvsr-cyaproxy-ssh
+    rdm_script_before_open: "%HOME%\\bin\\AccessRequestNew.ps1 -device $NAME$ -username $USERNAME$ -password $PASSWORD$ -accountUsername $USERNAME$"
+
+  raw:
+    ConnectionType-type: 77
+    AllowPasswordVariable: true
+    # Events:
+    #   - BeforeConnectionEmbeddedPowerShellScript: "%HOMEPATH%\\bin\\AccessRequestNew.ps1 -device $NAME$ -username $USERNAME$ -password $PASSWORD$"

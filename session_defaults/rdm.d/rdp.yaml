@@ -1,0 +1,14 @@
+# Default session settings
+# Connection type #77: SSH
+
+rdp:
+  excel:
+    port: 3389
+    rdm_credential: MVSR-mpls/mvsr-cyauser-rdp
+    rdm_host: MVSR-mpls/mvsr-cyaproxy-rdp
+    rdm_script_before_open: "%HOME%\\bin\\AccessRequestNew.ps1 -device $NAME$ -username $USERNAME$ -password $PASSWORD$ -accountUsername cya_adm"
+    
+  raw:
+    ConnectionType: 26
+    # Credentials:
+    #     UserName: kyrc9990282@cya_adm@$NAME$

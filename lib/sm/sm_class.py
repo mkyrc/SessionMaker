@@ -34,6 +34,7 @@ class SessionMaker:
         read_xml_file=False,
         # json_file="",
         # read_json_file=False,
+        session_defaults: dict = {},
         **kwargs,
     ):
         """Initial class method.
@@ -396,7 +397,7 @@ class SessionMaker:
 
     def print_xml(self, **kwargs):
         """
-        Print XML (ET.Element) object 'xml_element' to stdout as formated XML. 
+        Print XML (ET.Element) object 'xml_element' to stdout as formated XML.
         If not set, use self._session_xml attribute.
 
         Args:

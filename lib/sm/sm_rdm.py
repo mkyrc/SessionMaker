@@ -19,8 +19,9 @@ class SMDevolutionsRdm(SessionMaker):
         excel_file: str | None = None,
         json_file: str = "",
         read_excel_file=False,
-        credentails: dict | None = None,
+        credentials: dict | None = None,
         hosts: dict | None = None,
+        session_defaults_scrt: dict = {},
         **kwargs,
     ):
         """Initial method
@@ -48,10 +49,11 @@ class SMDevolutionsRdm(SessionMaker):
             settings,
             excel_file,
             read_excel_file=True,
+            session_defaults=session_defaults_scrt,
         )
 
         # rdm credential dict
-        self.set_credentials_dict(credentails)
+        self.set_credentials_dict(credentials)
 
         # rdm hosts
         self._rdm_hosts_dict = {}
@@ -215,7 +217,7 @@ class SMDevolutionsRdm(SessionMaker):
         Return:
             False in case of error (missing required column)
         """
-        
+
         # set general fields for session dict
         if super().set_sessions_dict(sessions) is False:
             return False
@@ -603,12 +605,13 @@ class SMDevolutionsRdm(SessionMaker):
         if rdm_script_before_open != "":
             conn_obj["AllowPasswordVariable"] = True
             conn_obj["Events"] = {}
-            conn_obj["Events"]["BeforeConnectionEmbeddedPowerShellScript"] = rdm_script_before_open
+            conn_obj["Events"][
+                "BeforeConnectionEmbeddedPowerShellScript"
+            ] = rdm_script_before_open
             conn_obj["Events"]["BeforeConnectionEvent"] = 5
             conn_obj["Events"]["BeforeConnectionWaitForExit"] = True
             conn_obj["Events"]["ConnectionPause"] = 10
             conn_obj["Events"]["ConnectionUseDefaultWorkingDirectory"] = False
-      
 
         # username
         if username != "":
@@ -829,8 +832,10 @@ class SMDevolutionsRdm(SessionMaker):
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
                     rdm_credential=self._sessions_dict["rdm_credential"][idx],
-                    rdm_host=self._sessions_dict["rdm_host"][idx],                    
-                    rdm_script_before_open=self._sessions_dict["rdm_script_before_open"][idx],                    
+                    rdm_host=self._sessions_dict["rdm_host"][idx],
+                    rdm_script_before_open=self._sessions_dict[
+                        "rdm_script_before_open"
+                    ][idx],
                 )
 
             # rdp session (#1)

@@ -13,3 +13,7 @@ debug.log
 # data (EXAMPLES only)
 data/*
 !data/EXAMPLE
+
+# custom templates
+settings/rdm.d/*
+settings/scrt.d/*

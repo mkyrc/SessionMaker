@@ -11,16 +11,16 @@ Version list:
         - initial version
 
 """
+
 import logging
-from os import path
-import pyexcel
-import xlsxwriter
+
+# from os import path
 import os.path
 from pathlib import Path
-
-# from datetime import date
 from datetime import datetime
 
+import pyexcel
+import xlsxwriter
 
 # from jinja2 import Environment, FileSystemLoader
 # from ruamel.yaml import YAML
@@ -123,7 +123,7 @@ class SMExcel:
             False: When not success
         """
 
-        if not path.isfile(excel_file):
+        if not os.path.isfile(excel_file):
             logging.error("File path '%s' to Excel file is not valid.", excel_file)
             self._excel_file = ""
             return False

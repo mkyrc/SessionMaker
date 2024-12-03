@@ -2,8 +2,8 @@
 import logging
 import xml.etree.ElementTree as ET
 
-from .sm_class import SessionMaker
-from .sm_xml import SMXml
+from lib.sm import SessionMaker
+from lib.io import SMXml
 
 
 # ========================================
@@ -125,7 +125,7 @@ class SMSecureCrt(SessionMaker):
                 if key in keys:
                     try:
                         self._credentials_dict[key] = list(map(str, credentials[key]))
-                    except KeyError as err:
+                    except KeyError:
                         logging.warning(
                             "Missing  column name '%s' (key: '%s'.)",
                             excel_col_name[key],

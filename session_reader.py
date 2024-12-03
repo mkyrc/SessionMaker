@@ -18,28 +18,26 @@ import os.path
 from pathlib import Path
 
 # import lib
-from lib.parseargs import parse_reader_args
-from lib.logging import init_logging
-from lib.settings import set_config_file
-from lib.settings import read_config_file
-from lib.sm_excel import SMExcel
-from lib.sm_scrt import SMSecureCrt
+from lib import parse_reader_args, init_logging
+from lib import set_config_file, read_config_file
+from lib import SMSecureCrt  # , SMExcel
 
 # ====================
 # Main function
 # ====================
+
 
 def main():
     """Main function of the script"""
 
     ## default settings
     config_file = "config.yaml"  # default settings file
-    src_file = None # SecureCRT XML file
-    dst_file = None # Excel file
+    src_file = None  # SecureCRT XML file
+    dst_file = None  # Excel file
 
     # arguments
     # ==========
-    
+
     if not ARGS.quiet:
         print("Reading arguments...")
 
@@ -148,7 +146,7 @@ def scrt_reader_2(**kwargs):
     quiet = kwargs.get("quiet", False)
 
     # parse XML and prepare dictionaries
-    # ==========    
+    # ==========
 
     if not quiet:
         print("Reading SecureCRT sessions XML file...")
@@ -170,7 +168,7 @@ def scrt_reader_2(**kwargs):
         )
 
     # Write to Excel file
-    # ==========    
+    # ==========
 
     if not quiet:
         print("Writing Excel file...")

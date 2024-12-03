@@ -3,7 +3,6 @@
 import logging
 import os.path
 
-
 from pathlib import Path
 from ruamel.yaml import YAML
 

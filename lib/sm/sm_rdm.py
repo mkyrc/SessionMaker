@@ -3,8 +3,8 @@
 import logging
 import xml.etree.ElementTree as ET
 import uuid
-from .sm_class import SessionMaker
-from .sm_xml import SMXml
+
+from lib.sm import SessionMaker
 
 
 # ========================================
@@ -83,17 +83,19 @@ class SMDevolutionsRdm(SessionMaker):
             False: In case of error
         """
         credentials_dict_ret = self.excel_read_sheet(sheet_name, "column")
-        if credentials_dict_ret == False:
+
+        if credentials_dict_ret is False:
             credentials_dict = None
         else:
             credentials_dict = self.col_name_normalize(
                 credentials_dict_ret,
                 self._settings["excel"]["col_names_rdm_credentials"],
             )
-        if self.set_credentials_dict(credentials_dict) == False:
+
+        if self.set_credentials_dict(credentials_dict) is False:
             return False
-        else:
-            return self._credentials_dict
+
+        return self._credentials_dict
 
     def excel_read_sheet_rdm_hosts(self, sheet_name: str) -> dict | list | bool:
         """Read excel sheet 'rdm_hosts' and return content as dict/array.
@@ -205,7 +207,7 @@ class SMDevolutionsRdm(SessionMaker):
         #     self.parse_xml_file()
 
     def set_sessions_dict(self, sessions=None) -> bool:
-        """Set (Devolutions RDM specific fields) session dictionary. If not set, initiate it.
+        """Set Devolutions RDM specific fields session dictionary. If not set, initiate it.
 
         Args:
             sessions (dict): sessions dictionary
@@ -213,13 +215,17 @@ class SMDevolutionsRdm(SessionMaker):
         Return:
             False in case of error (missing required column)
         """
+        
+        # set general fields for session dict
         if super().set_sessions_dict(sessions) is False:
             return False
 
+        # set rdm specific fields
         excel_col_name = self._settings["excel"]["col_names_sessions"]
         keys = [
             "rdm_credential",
             "rdm_host",
+            "rdm_script_before_open",
             "rdm_web_form",
             "rdm_web_login",
             "rdm_web_passwd",
@@ -558,6 +564,7 @@ class SMDevolutionsRdm(SessionMaker):
         username="",
         rdm_credential="",
         rdm_host="",
+        rdm_script_before_open="",
         # **kwargs,
     ):
         """Set RDM SSH session (type 77)
@@ -580,6 +587,7 @@ class SMDevolutionsRdm(SessionMaker):
         # credential = kwargs.get("credential", "")
         rdm_credential = rdm_credential.replace("/", "\\")
         rdm_host = rdm_host.replace("/", "\\")
+        # rdm_script_before_open = rdm_script_before_open.replace("\\", "\\\\")
 
         if session == "":
             logging.debug("Session without name. Skipping.")
@@ -590,8 +598,17 @@ class SMDevolutionsRdm(SessionMaker):
         conn_obj["Group"] = folder
         conn_obj["Name"] = session
         conn_obj["Terminal"] = {}
-        conn_obj["Terminal"]["Host"] = hostname                
+        conn_obj["Terminal"]["Host"] = hostname
         conn_obj["Terminal"]["HostPort"] = port
+        if rdm_script_before_open != "":
+            conn_obj["AllowPasswordVariable"] = True
+            conn_obj["Events"] = {}
+            conn_obj["Events"]["BeforeConnectionEmbeddedPowerShellScript"] = rdm_script_before_open
+            conn_obj["Events"]["BeforeConnectionEvent"] = 5
+            conn_obj["Events"]["BeforeConnectionWaitForExit"] = True
+            conn_obj["Events"]["ConnectionPause"] = 10
+            conn_obj["Events"]["ConnectionUseDefaultWorkingDirectory"] = False
+      
 
         # username
         if username != "":
@@ -608,7 +625,7 @@ class SMDevolutionsRdm(SessionMaker):
         # host
         if rdm_host != "":
             # reference to host object
-            conn_obj["HostSourceMode"] = 1            
+            conn_obj["HostSourceMode"] = 1
             conn_obj["HostConnectionSavedPath"] = rdm_host
             host_uuid = self.__get_rdm_connection_uuid(rdm_host)
             conn_obj["HostConnectionID"] = host_uuid
@@ -812,7 +829,8 @@ class SMDevolutionsRdm(SessionMaker):
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
                     rdm_credential=self._sessions_dict["rdm_credential"][idx],
-                    rdm_host=self._sessions_dict["rdm_host"][idx],
+                    rdm_host=self._sessions_dict["rdm_host"][idx],                    
+                    rdm_script_before_open=self._sessions_dict["rdm_script_before_open"][idx],                    
                 )
 
             # rdp session (#1)

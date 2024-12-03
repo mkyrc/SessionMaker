@@ -2,6 +2,12 @@
 
 <!-- https://keepachangelog.com/en/1.0.0/ -->
 
+## 0.4.1 (2024-12-03)
+
+### New
+
+- SessionMaker: RDM supports scripts (powershell script before open)
+
 ## 0.4.0-rc.1 (2024-11-22)
 
 ### Update

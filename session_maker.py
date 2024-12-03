@@ -19,7 +19,8 @@ from pathlib import Path
 from datetime import datetime
 
 # import lib
-from lib import parse_maker_args, init_logging, set_config_file, read_config_file
+from lib import parse_maker_args, init_logging
+from lib import set_config_file, read_config_file
 from lib import SMSecureCrt, SMDevolutionsRdm
 
 # ====================

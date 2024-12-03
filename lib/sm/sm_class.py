@@ -1,14 +1,13 @@
 """Session Maker master class"""
 
 import logging
-import os.path
-from pathlib import Path
+
+# import os.path
+# from pathlib import Path
 import xml.etree.ElementTree as ET
 import xmltodict
 
-from .sm_excel import SMExcel
-from .sm_xml import SMXml
-from .sm_json import SMJson
+from lib.io import SMExcel, SMXml, SMJson
 
 
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
@@ -176,7 +175,7 @@ class SessionMaker:
         #     # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
         #     self.parse_json_file()
 
-    def set_xml_file(self, xml_file: str|None, read_xml_file=False):
+    def set_xml_file(self, xml_file: str | None, read_xml_file=False):
         """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:
@@ -198,6 +197,7 @@ class SessionMaker:
             False in case of error (missing required column)
             True when success
         """
+        # general fields (columns) in excel file
         excel_col_name = self._settings["excel"]["col_names_sessions"]
         keys = [
             "folder",
@@ -395,7 +395,9 @@ class SessionMaker:
         return xmltodict.unparse(dict_data)
 
     def print_xml(self, **kwargs):
-        """Print XML (ET.Element) object 'xml_element' to stdout as formated XML. If not set, use self._session_xml attribute.
+        """
+        Print XML (ET.Element) object 'xml_element' to stdout as formated XML. 
+        If not set, use self._session_xml attribute.
 
         Args:
             xml_element (ET.Element, optional): Element to print.

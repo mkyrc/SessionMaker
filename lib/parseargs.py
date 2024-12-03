@@ -42,6 +42,7 @@ def parse_maker_args():
     parser.add_argument("source", type=str, help="Source (XLS) file")
     parser.add_argument(
         "--type",
+        "-t",
         choices=["scrt", "rdm"],
         default="scrt",
         help="Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM",

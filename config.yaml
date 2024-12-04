@@ -1,0 +1,69 @@
+# ==========
+# Excel settings
+# ==========
+excel:
+  # tab names
+  tab_sessions: sessions
+  tab_scrt_credentials: scrt-credentials
+  tab_scrt_firewalls: scrt-firewalls
+  tab_rdm_credentials: rdm-credentials
+  tab_rdm_hosts: rdm-hosts
+
+  # column names for 'sessions' tab
+  col_names_sessions:
+    folder: folder
+    session: session
+    type: type #[ssh, rdp, web]
+    hostname: hostname
+    port: port
+    username: username
+    rdp_alternate: rdp alternate shell
+
+    # Devolutions RDM values:
+    rdm_credential: rdm credential
+    rdm_host: rdm host
+    rdm_script_before_open: rdm script before open
+
+    # SecureCRT values:
+    scrt_credential: scrt credential
+    scrt_colorscheme: scrt colorscheme
+    scrt_keywords: scrt keywords
+    scrt_firewall: scrt firewall group
+
+  # SCRT: column names for 'scrt-credentials' tab
+  col_names_scrt_credentials:
+    credential: credential group
+    username: username
+
+  # SCRT: column names for 'scrt-firewalls' tab
+  col_names_scrt_firewalls:
+    firewall: firewall group
+    address: address
+    port: port
+    username: username
+
+  # RDM: column names for 'rdm-vaults' tab
+  col_names_rdm_credentials:
+    folder: folder
+    credential: credential name
+    username: username
+
+  col_names_rdm_hosts:
+    folder: folder
+    name: name
+    host: host
+    rdm_credential: rdm credential
+
+# ==========
+# SecureCRT settings
+# ==========
+scrt:
+  # default XML template with (default) session settings
+  template:
+    root: templates/scrt_default_root.xml
+    session_ssh: templates/scrt_default_session_ssh.xml
+    credential: templates/scrt_default_credential.xml
+    firewall: templates/scrt_default_firewall.xml
+
+rdm:
+  session_defaults: session_defaults/rdm.d/

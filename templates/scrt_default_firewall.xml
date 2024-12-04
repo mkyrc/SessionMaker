@@ -1,0 +1,12 @@
+<!-- default firewall XML template -->
+<key name="TPL_FIREWALL">
+	<!-- settings from excel -->
+	<string name="Firewall Address"></string>
+	<dword name="Firewall Port"></dword>
+	<string name="Firewall User"></string>
+	<!-- <string name="Firewall Password V2">03:065d530101032db4b894eb1981a958de2a4b907c79be59d320a6a01a4d57f9152c43df8994a13dd17b6ce59542816644c100a7bfa2967ee3952a84d25b81d52f5857a595adc45011acc6589631f05a9e</string> -->
+	<!-- default settings -->
+	<string name="Firewall Type">USER user@host login</string>
+	<string name="Proxy Prompt"/>
+	<string name="Proxy Command"/>
+</key>

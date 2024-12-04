@@ -15,5 +15,5 @@ data/*
 !data/EXAMPLE
 
 # custom templates
-settings/rdm.d/*
-settings/scrt.d/*
+session_defaults/rdm.d/*
+!session_defaults/rdm.d/*.example

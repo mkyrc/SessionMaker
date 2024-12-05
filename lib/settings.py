@@ -92,6 +92,11 @@ class Settings:
                     print(f"Error reading {yaml_file}: {e}")
 
     def recursive_merge(self, d1, d2):
+        """Recursively merge two dictionaries.
+        Return:
+            Merged deictionary
+        
+        """
         for key, value in d2.items():
             if key in d1 and isinstance(d1[key], dict) and isinstance(value, dict):
                 # Recursively merge nested dictionaries

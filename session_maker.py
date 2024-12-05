@@ -175,7 +175,7 @@ def scrt_maker(
 
     scrt_xml = sm_scrt.build_xml_from_dict()
 
-    if scrt_xml == None:
+    if scrt_xml is None:
         if not quiet:
             print("No sessions. Exit.")
         return
@@ -216,9 +216,10 @@ def rdm_maker(
     Args:
         src_file (str, optional): Path to the source Excel file. Defaults to None.
         dst_file (str, optional): Path to the destination JSON file. Defaults to None.
-        settings (dict, optional): Configuration settings for reading and processing the Excel file. Defaults to {}.
+        stg (Settings): App settings. Defaults
         quiet (bool, optional): If True, suppresses output messages. Defaults to False.
-        stdout (bool, optional): If True, prints the JSON content to stdout instead of writing to a file. Defaults to False.
+        stdout (bool, optional): If True, prints the JSON content to stdout 
+                                 instead of writing to a file. Defaults to False.
 
     Returns:
         None

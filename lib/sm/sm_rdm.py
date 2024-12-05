@@ -1,8 +1,11 @@
 """Devolutions Remote Desktop Manager (RDM) session generator"""
 
 import logging
-import xml.etree.ElementTree as ET
+
+# import xml.etree.ElementTree as ET
 import uuid
+
+# from typing import List, Dict
 
 from lib.sm import SessionMaker
 
@@ -21,7 +24,7 @@ class SMDevolutionsRdm(SessionMaker):
         read_excel_file=False,
         credentials: dict | None = None,
         hosts: dict | None = None,
-        session_defaults_rdm: dict = {},
+        session_defaults_rdm: dict | None = None,
         # **kwargs,
     ):
         """Initial method
@@ -274,185 +277,11 @@ class SMDevolutionsRdm(SessionMaker):
     # Prepare XML to ordered dict (From XML to Excel)
     # ====================
 
-    ### private methods
-
-    def __set_credentials_dict_from_xml(self, root: ET.Element):
-        """Set self._credentials_dict from XML content"""
-
-        # walk through all "key tags" and read folders and sessions
-        idx = 0
-        for child in root.iterfind("key"):
-            # set session parameters from XML content
-
-            self._credentials_dict["credential"].insert(idx, child.attrib["name"])
-
-            for sub_et in child.findall("./*/[@name='Username']"):
-                text = "" if sub_et.text is None else sub_et.text
-                self._credentials_dict["username"].insert(idx, text)
-
-            logging.debug(
-                " {0:>3} | {1:<20} | {2:<33}".format(
-                    idx + 1,
-                    self._credentials_dict["credential"][idx],
-                    self._credentials_dict["username"][idx],
-                )
-            )
-            idx += 1
-
-    def __set_sessions_dict_from_xml(self, root: ET.Element, folder):
-        """Set self._sessions_dict from XML content"""
-
-        # walk through all "key tags" and read folders and sessions
-        for child in root.iterfind("key"):
-            # get correct folder path
-            while len(folder) > 0 and root.attrib["name"] != folder[len(folder) - 1]:
-                if len(folder) > 1:
-                    del folder[len(folder) - 1]
-                else:
-                    folder = []
-                    break
-
-            if len(child.findall("key")) > 0:
-                # build folder path
-                folder.append(child.attrib["name"])
-            else:
-                # build session
-                idx = len(self._sessions_dict["folder"])
-                logging.debug(
-                    " {0:>3} | {1:<30} | {2:<30}".format(
-                        idx + 1, "/".join(folder), child.attrib["name"]
-                    )
-                )
-
-                # set session parameters from XML content
-                self._sessions_dict["folder"].insert(idx, "/".join(folder))
-
-                self._sessions_dict["session"].insert(idx, child.attrib["name"])
-
-                for sub_et in child.findall("./*/[@name='Hostname']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["hostname"].insert(idx, text)
-
-                for sub_et in child.findall("./*/[@name='[SSH2] Port']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["port"].insert(idx, text)
-
-                for sub_et in child.findall("./*/[@name='Username']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["username"].insert(idx, text)
-
-                for sub_et in child.findall("./*/[@name='Credential Title']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["credential"].insert(idx, text)
-
-                for sub_et in child.findall("./*/[@name='Keyword Set']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["keywords"].insert(idx, text)
-
-                for sub_et in child.findall("./*/[@name='Color Scheme']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["colorscheme"].insert(idx, text)
-
-                for sub_et in child.findall("./*/[@name='Firewall Name']"):
-                    text = "" if sub_et.text is None else sub_et.text
-                    self._sessions_dict["firewall"].insert(idx, text)
-
-            self.__set_sessions_dict_from_xml(child, folder)
-
     ### public methods
 
     def get_rdm_hosts_dict_count(self):
         """Return credentials dictionary size (int)."""
         return len(self._rdm_hosts_dict["name"])
-
-    def build_dict_from_xml(self):
-        """Read SecureCRT XML session file and set all dictionaries.
-
-        Read XML file, set sessions_xml attribute and set:
-            - self._sessions_dict
-            - self._credentials_dict
-            - self._firewalls_dict
-        """
-
-        # get XML element/content from XML file
-        # xml_element = self.parse_xml_file(self.xml_file)
-        # xml_element = self._xml_obj.parse_xml_file(self.xml_file)
-        if self._xml_sessions == None:
-            return False
-
-        # self.set_xml_sessions(xml_element)
-
-        self.set_sessions_dict_from_xml()
-        self.set_credentials_dict_from_xml()
-
-    def set_credentials_dict_from_xml(self) -> None | dict:
-        """Read SecureCRT export (self._sessions_xml) and set self._credentials_dict.
-
-        Returns:
-            None | dict: Ordered dict (self._credentials_dict) or None.
-        """
-
-        if self._xml_sessions is None:
-            return None
-
-        base_root = self._xml_sessions
-        credentials_root = base_root.find("./key[@name='Credentials']")
-
-        if credentials_root is not None:
-            folder = []
-            logging.info("Importing credentials from XML file...")
-            logging.debug(
-                " {0:>3} | {1:<20} | {2:<20}".format(
-                    "#", "credential group", "username"
-                )
-            )
-            logging.debug(" {0:->3}-+-{1:-<20}-+-{2:-<33}".format("", "", ""))
-            self.set_credentials_dict()
-            self.__set_credentials_dict_from_xml(credentials_root)
-            logging.debug(" {0:->3}-+-{1:-<20}-+-{2:-<33}".format("", "", ""))
-            logging.info("Imported %d record(s).", self.get_credentials_dict_count())
-
-        return self._credentials_dict
-
-    def set_sessions_dict_from_xml(self) -> None | dict:
-        """Read SecureCRT export (self._sessions_xml) and set self._sessions_dict.
-
-        Returns:
-            None | dict: Ordered dict (self._sessions_dict) or None.
-        """
-
-        if self._xml_sessions is None:
-            return None
-
-        base_root = self._xml_sessions
-        sessions_root = base_root.find("./key[@name='Sessions']")
-
-        if sessions_root is not None:
-            folder = []
-            logging.info("Importing sessions from XML file...")
-            logging.debug(
-                " {0:>3} | {1:<30} | {2:<30}".format("#", "folder path", "session name")
-            )
-            logging.debug(" {0:->3}-+-{1:-<30}-+-{2:-<30}".format("", "", ""))
-            self.set_sessions_dict()
-            self.__set_sessions_dict_from_xml(sessions_root, folder)
-            logging.debug(" {0:->3}-+-{1:-<30}-+-{2:-<30}".format("", "", ""))
-            logging.info("Imported %d record(s).", self.get_sessions_dict_count())
-
-        return self._sessions_dict
-
-    def write_excel(self, **kwargs):
-        excel_file = str(kwargs.get("excel_file", self.excel_file))
-        credentials_dict = kwargs.get("credentials_dict", self._credentials_dict)
-        sessions_dict = kwargs.get("sessions_dict", self._sessions_dict)
-        firewalls_dict = kwargs.get("firewalls_dict", {})
-
-        self._excel_obj.write_excel_book(
-            excel_file=excel_file,
-            sessions_dict=sessions_dict,
-            credentials_dict=credentials_dict,
-            firewalls_dict=firewalls_dict,
-        )
 
     # ====================
     # Prepare RDM structure from ordered dicts (from Excel to JSON)
@@ -473,7 +302,7 @@ class SMDevolutionsRdm(SessionMaker):
 
         return data.replace("/", "\\")
 
-    def normalize_dict_path(self, data: dict, valid_keys: list[str] = []) -> dict:
+    def normalize_dict_path(self, data: dict, valid_keys: list | None = None) -> dict:
         """
         Normalize the path separators in the given data.
         This method replaces all forward slashes ("/") with backslashes ("\\")
@@ -488,6 +317,9 @@ class SMDevolutionsRdm(SessionMaker):
             str | dict: The normalized data with path separators replaced.
         """
 
+        if valid_keys is None:
+            valid_keys = []
+
         if isinstance(data, dict):
             for key, value in data.items():
                 if isinstance(value, dict):
@@ -498,10 +330,10 @@ class SMDevolutionsRdm(SessionMaker):
         return data
 
     def _build_conn_obj_common(
-        self, conn_type: int, connection_name: str, folder_path=""
+        self, connection_type: int, connection_name: str, folder_path=""
     ):
         return {
-            "ConnectionType": conn_type,
+            "ConnectionType": connection_type,
             "Group": self.normalize_string_path(folder_path),
             "Name": connection_name,
         }
@@ -574,10 +406,10 @@ class SMDevolutionsRdm(SessionMaker):
     def _build_conn_obj_host_port_ssh(self, hostname="", port=""):
         if port == "":
             return {"Terminal": {"Host": hostname}}
-        else:
-            return {"Terminal": {"Host": hostname, "HostPort": port}}
 
-    def _build_rdm_connection_folder(self, **kwargs):
+        return {"Terminal": {"Host": hostname, "HostPort": port}}
+
+    def _build_rdm_connection_folder(self, folder=""):
         """Set RDM connection folder (type 25).
 
         Check if parent exists, if not, create it (recursively).
@@ -586,20 +418,35 @@ class SMDevolutionsRdm(SessionMaker):
             folder (str): Folder path as a string
         """
         # arguments
-        folder = kwargs.get("folder", "")
+        # - no arguments for parsing
 
-        # prepare folder path and add parent recursively
+        if folder == "":
+            logging.warning("Folder object without name. Skipping.")
+            return
+
+        # normalize paths
         folder = self.normalize_string_path(folder)
+
+        # build folder hierarchy
         folder_list = folder.split("\\")
         folder_name = folder_list[-1]
         if len(folder_list) > 1:
             self._build_rdm_connection_folder(folder="\\".join(folder_list[0:-1]))
 
+        #
+        # current session data (for merging)
+        #
+        sd = {}
+        sd["conn_type"] = 25
+        sd["folder"] = folder
+        sd["folder_name"] = folder_name
+
         # build folder object
-        conn_obj = {}
-        conn_obj["ConnectionType"] = 25
-        conn_obj["Group"] = folder
-        conn_obj["Name"] = folder_name
+        conn_obj = self._build_conn_obj_common(
+            sd["conn_type"],
+            sd["folder_name"],
+            sd["folder"],
+        )
 
         # check if folder dict exists
         if conn_obj in self._rdm_connection_list:
@@ -704,8 +551,8 @@ class SMDevolutionsRdm(SessionMaker):
 
         Args:
             folder (str): Session path (optional)
-            name (str): Session name (required)
-            host (str): Host/IP (optional)
+            conn_name (str): Session name (required)
+            hostname (str): Host/IP (optional)
             rdm_credential (str): Path to credential (optional)
 
         Returns:
@@ -1262,7 +1109,8 @@ class SMDevolutionsRdm(SessionMaker):
             if session_type == "ssh":
                 self._build_rdm_connection_ssh_session(
                     folder=folder_path,
-                    session=self._sessions_dict["session"][idx],
+                    # session=self._sessions_dict["session"][idx],
+                    session=session_row,
                     hostname=self._sessions_dict["hostname"][idx],
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
@@ -1307,7 +1155,7 @@ class SMDevolutionsRdm(SessionMaker):
         """Set __rdm_connection_list from _credentials_dict"""
 
         # get credentials/credentials in a loop
-        for idx, vault_row in enumerate(self._credentials_dict["credential"]):
+        for idx, credential_row in enumerate(self._credentials_dict["credential"]):
             # get folders structure
             folder_path = self._credentials_dict["folder"][idx]
             folder_path = folder_path.replace("/", "\\")
@@ -1315,7 +1163,8 @@ class SMDevolutionsRdm(SessionMaker):
             # credential (#26)
             self._build_rdm_connection_credential(
                 folder=folder_path,
-                credential=self._credentials_dict["credential"][idx],
+                # credential=self._credentials_dict["credential"][idx],
+                credential=credential_row,
                 username=self._credentials_dict["username"][idx],
             )
 
@@ -1334,7 +1183,8 @@ class SMDevolutionsRdm(SessionMaker):
             self._build_rdm_connection_host(
                 folder=folder_path,
                 conn_name=self._rdm_hosts_dict["name"][idx],
-                hostname=self._rdm_hosts_dict["host"][idx],
+                # hostname=self._rdm_hosts_dict["host"][idx],
+                hostname=host_row,
                 rdm_credential=self._rdm_hosts_dict["rdm_credential"][idx],
             )
 

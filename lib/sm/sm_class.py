@@ -34,7 +34,7 @@ class SessionMaker:
         read_xml_file=False,
         # json_file="",
         # read_json_file=False,
-        session_defaults: dict = {},
+        session_defaults: dict | None = None,
         **kwargs,
     ):
         """Initial class method.
@@ -69,7 +69,10 @@ class SessionMaker:
         self._credentials_dict = {}
 
         # session defaults
-        self.session_defaults = session_defaults
+        if session_defaults is None:
+            self.session_defaults = {}
+        else:
+            self.session_defaults = session_defaults
 
         # XML file
         self.xml_file = ""
@@ -107,7 +110,7 @@ class SessionMaker:
         """
         if session_type == "":
             return self.session_defaults
-        return self.session_defaults.get(session_type, {}).get(defaults_type,{})
+        return self.session_defaults.get(session_type, {}).get(defaults_type, {})
 
     def merge_session_data(
         self, session: dict, session_to_merge: dict, append=False
@@ -142,8 +145,19 @@ class SessionMaker:
         return session
 
     def append_session_data(self, session: dict, session_to_append: dict) -> dict:
+        """
+        Appends data from one session dictionary to another session dictionary.
+        This method recursively merges the contents of `session_to_append` into `session`.
+        If a key in `session_to_append` corresponds to a dictionary, the method will
+        recursively merge the dictionaries. If a key in `session_to_append` does not
+        exist in `session`, it will be added.
+        Args:
+            session (dict): The original session dictionary to which data will be appended.
+            session_to_append (dict): The session dictionary containing data to append.
+        Returns:
+            dict: The updated session dictionary with the appended data.
+        """
 
-        # ret = session.copy()
         for key, value in session_to_append.items():
             if isinstance(value, dict):
                 session[key] = self.append_session_data(
@@ -174,24 +188,30 @@ class SessionMaker:
         """
         return self._sessions_dict
 
-    def get_sessions_dict_count(self, type=[""]) -> int:
-        """Return sessions dictionary size.
-
-        Args:
-            type (str): Type of session. If empty, return all sessions
-        Returns:
-            (int): Sessions groups dict count
+    def get_sessions_dict_count(self, session_type: list | None = None) -> int:
         """
+        Get the count of sessions in the _sessions_dict attribute.
+        When session_type_list is defined, count only sessions that match the types in the list.
+        If no session_type_list is provided, count all sessions.
+        Args:
+            session_type (list | None): A list of session types to count. If None,
+                                        all session types are counted.
+        Returns:
+            int: The count of sessions.
+        """
+
         # return len(self._sessions_dict["session"])
         session_count = 0
 
-        for idx, session_type in enumerate(self._sessions_dict["type"]):
-            if self._sessions_dict["session"][idx] == "":
+        for st_idx, st_val in enumerate(self._sessions_dict["type"]):
+            if self._sessions_dict["session"][st_idx] == "":
                 # empty session name, skip it
                 continue
-            if "" in type:
+            if session_type is None:
+                # count every session type
                 session_count += 1
-            elif session_type in type:
+            elif st_val in session_type:
+                # count only requested session types
                 session_count += 1
 
         return session_count
@@ -224,7 +244,9 @@ class SessionMaker:
             self.excel_read_book()
 
     def set_json_file(self, json_file: str, read_json_file=False):
-        """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
+        """
+        Set XML file attribute.
+        If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:
             xml_file (str): XML file (source or destination)
@@ -237,7 +259,9 @@ class SessionMaker:
         #     self.parse_json_file()
 
     def set_xml_file(self, xml_file: str | None, read_xml_file=False):
-        """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
+        """
+        Set XML file attribute.
+        If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:
             xml_file (str): XML file (source or destination)
@@ -333,7 +357,9 @@ class SessionMaker:
 
         return False
 
-    def excel_read_sheet(self, sheet_name: str, type="column") -> dict | list | bool:
+    def excel_read_sheet(
+        self, sheet_name: str, read_mode="column"
+    ) -> dict | list | bool:
         """Read excel sheet and return content as dict/array.
 
         Args:
@@ -345,7 +371,7 @@ class SessionMaker:
             array: Array (when get=['array']
             False: In case of error
         """
-        return self._excel_obj.read_excel_sheet(sheet_name, type)
+        return self._excel_obj.read_excel_sheet(sheet_name, read_mode)
 
     def excel_read_sheet_sessions(self, sheet_name: str) -> dict | list | bool:
         """Read excel sheet 'sessions' and return content as dict/array.

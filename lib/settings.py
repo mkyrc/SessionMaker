@@ -80,14 +80,26 @@ class Settings:
             raise ValueError(f"The path '{path}' is not a valid directory.")
 
         # Read and merge all YAML files in the folder
-        for yaml_file in path.glob("*.yaml"):
+        for yaml_file in sorted(path.glob("*.yaml")):
             with open(yaml_file, "r", encoding="utf-8") as file:
                 try:
                     data = yaml.load(file) or {}
-                    self.rdm_session_defaults.update(data)
+                    self.rdm_session_defaults = self.recursive_merge(
+                        self.rdm_session_defaults, data
+                    )
 
                 except Exception as e:
                     print(f"Error reading {yaml_file}: {e}")
+
+    def recursive_merge(self, d1, d2):
+        for key, value in d2.items():
+            if key in d1 and isinstance(d1[key], dict) and isinstance(value, dict):
+                # Recursively merge nested dictionaries
+                d1[key] = self.recursive_merge(d1[key], value)
+            else:
+                # Merge non-dictionary values
+                d1[key] = value
+        return d1
 
     def set_config_file(self, config_file):
         """Set configuration file path.

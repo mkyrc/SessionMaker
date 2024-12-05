@@ -606,15 +606,17 @@ class SMDevolutionsRdm(SessionMaker):
         self._rdm_connection_list.append(conn_obj)
 
     def _build_rdm_connection_credential(self, folder="", credential="", username=""):
-        """Set RDM Credential (type 26)
-
-        Check if credential not exists in self.__rdm_connection_list and add it.
-
-        Args:
-            folder (str, optional, default=""): folder path
-            credential (str): credential name
-            username (str, optional, default: ""): username
         """
+        Builds a Remote Desktop Manager (RDM) connection credential (26) object and 
+        appends it to the RDM connection list.
+        Args:
+            folder (str): The folder path. Defaults to: "".
+            credential (str): The name of the credential. Defaults to: "".
+            username (str): The username associated with the credential. Defaults to: "".
+        Returns:
+            None
+        """
+        
         # arguments
         # credential = kwargs.get("credential", "")
         # username = kwargs.get("username", "")
@@ -677,7 +679,7 @@ class SMDevolutionsRdm(SessionMaker):
                     }
                 }
             )
-            
+
         # append raw defaults
         conn_obj = self.append_session_data(conn_obj, sdd_raw)
 

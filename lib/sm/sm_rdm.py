@@ -169,7 +169,12 @@ class SMDevolutionsRdm(SessionMaker):
             hosts (dict): Ordered dict of RDM credentials.
         """
         excel_col_name = self._settings["excel"]["col_names_rdm_hosts"]
-        keys = ["folder", "name", "host", "rdm_credential"]
+        keys = [
+            "folder",
+            "name",
+            "host",
+            "rdm_credential",
+        ]
         required_keys = ["name"]
 
         if hosts is None:
@@ -584,8 +589,6 @@ class SMDevolutionsRdm(SessionMaker):
         folder = kwargs.get("folder", "")
 
         # prepare folder path and add parent recursively
-        # if "/" in folder:
-        #     folder = folder.replace("/", "\\")
         folder = self.normalize_string_path(folder)
         folder_list = folder.split("\\")
         folder_name = folder_list[-1]
@@ -607,7 +610,7 @@ class SMDevolutionsRdm(SessionMaker):
 
     def _build_rdm_connection_credential(self, folder="", credential="", username=""):
         """
-        Builds a Remote Desktop Manager (RDM) connection credential (26) object and 
+        Builds a Remote Desktop Manager (RDM) connection credential (26) object and
         appends it to the RDM connection list.
         Args:
             folder (str): The folder path. Defaults to: "".
@@ -616,7 +619,7 @@ class SMDevolutionsRdm(SessionMaker):
         Returns:
             None
         """
-        
+
         # arguments
         # credential = kwargs.get("credential", "")
         # username = kwargs.get("username", "")
@@ -690,7 +693,11 @@ class SMDevolutionsRdm(SessionMaker):
         self._rdm_connection_list.append(conn_obj)
 
     def _build_rdm_connection_host(
-        self, folder="", name="", host="", rdm_credential=""
+        self,
+        folder="",
+        conn_name="",
+        hostname="",
+        rdm_credential="",
     ):
         """
         Builds a Connection object type Host (type 53).
@@ -708,32 +715,77 @@ class SMDevolutionsRdm(SessionMaker):
         # build Host object (type 53)
 
         # arguments
-        self._build_rdm_connection_folder(folder=folder)
+        # - no arguments for parsing
 
-        # rdm_credential
-        # rdm_vault=self._rdm_hosts_dict["rdm_vault"][idx]
-        rdm_credential = rdm_credential.replace("/", "\\")
-
-        if name == "":
+        if conn_name == "":
             logging.warning("Host object without name. Skipping.")
             return
 
-        # object: Host
+        self._build_rdm_connection_folder(folder=folder)
+
+        # normalize paths
+        folder = self.normalize_string_path(folder)
+        rdm_credential = self.normalize_string_path(rdm_credential)
+
+        # build folder hierarchy
+        self._build_rdm_connection_folder(folder=folder)
+
+        # session defaults data (with path normalization)
+        sdd_excel = self.get_session_defaults("host", "excel")
+        keys_to_normalize = ["rdm_credential"]
+        sdd_excel = self.normalize_dict_path(sdd_excel, keys_to_normalize)
+
+        sdd_raw = self.get_session_defaults("host", "raw")
+
+        #
+        # current session data (for merging)
+        #
+        sd = {}
+        sd["rdm_credential"] = rdm_credential
+
+        # merge with excel defaults
+        sd = self.merge_session_data(sd, sdd_excel)
+
+        # add current session data
+        sd["conn_type"] = 53
+        sd["folder"] = folder
+        sd["conn_name"] = conn_name
+        sd["hostname"] = hostname
+
+        #
+        # build connection object
+        #
         conn_obj = {}
-        conn_obj["ConnectionType"] = 53
-        conn_obj["Group"] = folder
-        conn_obj["Name"] = name
-        # generate unique UUID (when using in other connection types)
-        conn_obj["ID"] = str(uuid.uuid4())
-        # host/ip
-        conn_obj["HostDetails"] = {}
-        if host != "":
-            conn_obj["HostDetails"]["Host"] = host
+        conn_obj.update(
+            self._build_conn_obj_common(
+                sd["conn_type"],
+                sd["conn_name"],
+                sd["folder"],
+            )
+        )
+
+        # host object specific
+
+        conn_obj.update(
+            {
+                "ID": str(uuid.uuid4()),
+                "HostDetails": {
+                    "Host": sd["hostname"],
+                },
+            }
+        )
+
         # credential (if defined)
+        # username, linked credential, private vault
         if rdm_credential != "":
-            conn_obj["CredentialConnectionSavedPath"] = rdm_credential
-            credential_uuid = self._get_rdm_connection_uuid(rdm_credential)
-            conn_obj["CredentialConnectionID"] = credential_uuid
+            conn_obj.update(
+                self._build_conn_obj_credential(
+                    sd["rdm_credential"],
+                )
+            )
+
+        # append raw defaults
+        conn_obj = self.append_session_data(conn_obj, sdd_raw)
 
         # check duplicity
         if conn_obj in self._rdm_connection_list:
@@ -1281,8 +1333,8 @@ class SMDevolutionsRdm(SessionMaker):
             # host (#53)
             self._build_rdm_connection_host(
                 folder=folder_path,
-                name=self._rdm_hosts_dict["name"][idx],
-                host=self._rdm_hosts_dict["host"][idx],
+                conn_name=self._rdm_hosts_dict["name"][idx],
+                hostname=self._rdm_hosts_dict["host"][idx],
                 rdm_credential=self._rdm_hosts_dict["rdm_credential"][idx],
             )
 

@@ -492,11 +492,13 @@ class SMDevolutionsRdm(SessionMaker):
 
         return data
 
-    def _build_conn_obj_common(self, conn_type: int, session_name: str, folder_path=""):
+    def _build_conn_obj_common(
+        self, conn_type: int, connection_name: str, folder_path=""
+    ):
         return {
             "ConnectionType": conn_type,
             "Group": self.normalize_string_path(folder_path),
-            "Name": session_name,
+            "Name": connection_name,
         }
 
     def _build_conn_obj_username_rdp(self, username="", credential=""):
@@ -614,7 +616,6 @@ class SMDevolutionsRdm(SessionMaker):
             username (str, optional, default: ""): username
         """
         # arguments
-        self._build_rdm_connection_folder(folder=folder)
         # credential = kwargs.get("credential", "")
         # username = kwargs.get("username", "")
 
@@ -622,16 +623,63 @@ class SMDevolutionsRdm(SessionMaker):
             logging.warning("Credential without name. Skipping.")
             return
 
-        # object: credential
+        # normalize paths
+        folder = self.normalize_string_path(folder)
+
+        # build folder hierarchy
+        self._build_rdm_connection_folder(folder=folder)
+
+        # session defaults data (with path normalization)
+        sdd_excel = self.get_session_defaults("credential", "excel")
+        sdd_excel = self.normalize_dict_path(sdd_excel, ["folder"])
+
+        sdd_raw = self.get_session_defaults("ssh", "raw")
+
+        #
+        # current session data (for merging)
+        #
+        sd = {}
+
+        # merge with excel defaults
+        sd = self.merge_session_data(sd, sdd_excel)
+
+        # add current session data
+        sd["conn_type"] = 26
+        sd["folder"] = folder
+        sd["credential"] = credential
+        sd["username"] = username
+
+        #
+        # build connection object
+        #
         conn_obj = {}
-        conn_obj["ConnectionType"] = 26
-        conn_obj["Group"] = folder
-        conn_obj["Name"] = credential
-        conn_obj["CredentialConnectionID"] = str(uuid.uuid4())
-        conn_obj["ID"] = str(uuid.uuid4())
-        conn_obj["Credentials"] = {}
+        conn_obj.update(
+            self._build_conn_obj_common(
+                sd["conn_type"],
+                sd["credential"],
+                sd["folder"],
+            )
+        )
+
+        # credential object specific
+        conn_obj.update(
+            {
+                "CredentialConnectionID": str(uuid.uuid4()),
+                "ID": str(uuid.uuid4()),
+            }
+        )
+
         if username != "":
-            conn_obj["Credentials"]["UserName"] = username
+            conn_obj.update(
+                {
+                    "Credentials": {
+                        "UserName": sd["username"],
+                    }
+                }
+            )
+            
+        # append raw defaults
+        conn_obj = self.append_session_data(conn_obj, sdd_raw)
 
         # check duplicity
         if conn_obj in self._rdm_connection_list:

@@ -5,14 +5,14 @@
 # Default session settings
 # Connection type #77: RDP
 
-# rdp:
-#   excel:
-#     port: 3389
-#     rdm_credential: "example/my rdm credential"
-#     rdm_host: "example/my rdm credential"
-#     rdm_script_before_open: "%HOMEPATH%\\win\\path\\my-script.ps1 -argument value"
+rdp:
+  excel:
+    port: 3389
+    rdm_credential: "example/my rdm credential"
+    rdm_host: "example/my rdm credential"
+    rdm_script_before_open: "%HOMEPATH%\\win\\path\\my-script.ps1 -argument value"
     
-#   raw:
-#     ConnectionType: 26
-#     # Credentials:
-#     #     UserName: kyrc9990282@cya_adm@$NAME$
+  raw:
+    ConnectionType: 26
+    # Credentials:
+    #     UserName: kyrc9990282@cya_adm@$NAME$

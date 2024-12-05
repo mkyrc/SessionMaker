@@ -52,11 +52,20 @@ class Settings:
                 )
                 return False
 
-    def read_session_defaults(self, type="scrt"):
-        
-        if type == "rdm":
+    def read_session_defaults(self, client_type="scrt"):
+        """
+        Reads the session defaults settings based on the specified type.
+        Args:
+            client_type (str): The type of session settings to read. Defaults to "scrt".
+                        - "scrt": Reads the default settings for SCRT sessions.
+                        - "rdm": Reads the default settings for RDM sessions.
+        Returns:
+            None
+        """
+
+        if client_type == "rdm":
             self._read_session_defaults_rdm()
-            
+
     def _read_session_defaults_rdm(self):
 
         if self.app_config is None:
@@ -64,14 +73,14 @@ class Settings:
 
         path = Path(self.app_config["rdm"]["session_defaults"])
         yaml = YAML(typ="safe")
-        
+
         data = {}
 
         if not path.is_dir():
             raise ValueError(f"The path '{path}' is not a valid directory.")
 
         # Read and merge all YAML files in the folder
-        for yaml_file in path.glob('*.yaml'):
+        for yaml_file in path.glob("*.yaml"):
             with open(yaml_file, "r", encoding="utf-8") as file:
                 try:
                     data = yaml.load(file) or {}

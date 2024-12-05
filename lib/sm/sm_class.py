@@ -52,9 +52,9 @@ class SessionMaker:
 
         # settings (dict, config.yaml content)
         if settings is None:
-            self._settings = {}
-        else:
-            self.set_settings(settings)
+            raise ValueError("Missing settings (config.yaml) content.")
+
+        self.set_settings(settings)
 
         # excel_file path (str). if set, initiate excel_obj
         self.excel_file = ""
@@ -67,7 +67,7 @@ class SessionMaker:
 
         # credential groups dict
         self._credentials_dict = {}
-        
+
         # session defaults
         self.session_defaults = session_defaults
 
@@ -90,21 +90,35 @@ class SessionMaker:
         )
 
     # ====================
-    # private methods
+    # working with defaults
     # ====================
 
-    # ====================
-    # protected methods
-    # ====================
-    
-    def merge_session_data(self, session: dict, session_to_merge: dict, append=False) -> dict:
+    def get_session_defaults(self, session_type="", defaults_type="excel") -> dict:
         """
-        If session[key] is not defined, update it with session_defaults[key]. 
-        
+        Return session defaults based on specific session type (ssh, rdp, etc.)
+        and source ([excel, raw]).
+
         Args:
-            session (dict): Session data            
-            session_to_merge (dict): Session default data   
-            append (bool): Append unused keys to session data         
+            session_type (str, optional): Type of session [[ssh, rdp, web, etc.]]. Defaults to "".
+            defaults_type (str, optional): Content type [excel, raw]. Defaults to "excel".
+
+        Returns:
+            dict: Session defaults for specific session type and defaults type
+        """
+        if session_type == "":
+            return self.session_defaults
+        return self.session_defaults.get(session_type, {}).get(defaults_type,{})
+
+    def merge_session_data(
+        self, session: dict, session_to_merge: dict, append=False
+    ) -> dict:
+        """
+        If session[key] is not defined, update it with session_defaults[key].
+
+        Args:
+            session (dict): Session data
+            session_to_merge (dict): Session default data
+            append (bool): Append unused keys to session data
 
         Returns:
             dict: Merged session
@@ -114,28 +128,31 @@ class SessionMaker:
         # merge session data with session defaults
         for key, value in session.items():
             if isinstance(value, dict):
-                session[key] = self.merge_session_data(value, session_to_merge.get(key, {}))
+                session[key] = self.merge_session_data(
+                    value, session_to_merge.get(key, {})
+                )
             elif value == "" and key in session_to_merge:
-                    session[key] = session_to_merge[key]
-                
+                session[key] = session_to_merge[key]
+
         # merge defaults to session (add unused keys)
         # session_defaults.update(session)
         if append:
             session = self.append_session_data(session, session_to_merge)
 
         return session
-    
+
     def append_session_data(self, session: dict, session_to_append: dict) -> dict:
-                
+
         # ret = session.copy()
         for key, value in session_to_append.items():
             if isinstance(value, dict):
-                session[key] = self.append_session_data(value, session_to_append.get(key, {}))
+                session[key] = self.append_session_data(
+                    value, session_to_append.get(key, {})
+                )
             elif key not in session:
                 session[key] = value
-        
+
         return session
-            
 
     # ====================
     # public methods

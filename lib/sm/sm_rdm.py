@@ -492,6 +492,84 @@ class SMDevolutionsRdm(SessionMaker):
 
         return data
 
+    def _build_conn_obj_common(self, conn_type: int, session_name: str, folder_path=""):
+        return {
+            "ConnectionType": conn_type,
+            "Group": self.normalize_string_path(folder_path),
+            "Name": session_name,
+        }
+
+    def _build_conn_obj_username_rdp(self, username="", credential=""):
+        conn_obj = {}
+        if username != "" and credential == "":
+            conn_obj["RDP"]["Username"] = username
+            conn_obj["PromptCredentials"] = "true"
+
+        conn_obj.update(self._build_conn_obj_credential(credential))
+
+        return conn_obj
+
+    def _build_conn_obj_username_ssh(self, username="", credential=""):
+        conn_obj = {}
+        if username != "" and credential == "":
+            conn_obj["Terminal"] = {}
+            conn_obj["Terminal"]["Username"] = username
+
+        conn_obj.update(self._build_conn_obj_credential(credential))
+
+        return conn_obj
+
+    def _build_conn_obj_credential(self, credential=""):
+        conn_obj = {}
+        if credential != "":
+
+            if credential.startswith("private:"):
+                # private vault
+                cr = credential.lstrip("private:").strip()
+                conn_obj["CredentialPrivateVaultSearchString"] = cr
+            else:
+                # linked credential
+                credential_uuid = self._get_rdm_connection_uuid(credential)
+                conn_obj["CredentialConnectionSavedPath"] = credential
+                conn_obj["CredentialConnectionID"] = credential_uuid
+
+        return conn_obj
+
+    def _build_conn_obj_script_before_open(self, script_path=""):
+
+        # conn_obj["AllowPasswordVariable"] = True
+        return {
+            "Events": {
+                "BeforeConnectionEmbeddedPowerShellScript": script_path,
+                "BeforeConnectionEvent": 5,
+                "BeforeConnectionWaitForExit": True,
+                "ConnectionPause": 10,
+                "ConnectionUseDefaultWorkingDirectory": False,
+            }
+        }
+
+    def _build_conn_obj_link_host(self, host_obj_path=""):
+
+        host_uuid = self._get_rdm_connection_uuid(host_obj_path)
+
+        return {
+            "HostSourceMode": 1,
+            "HostConnectionSavedPath": host_obj_path,
+            "HostConnectionID": host_uuid,
+        }
+
+    def _build_conn_obj_host_port_rdp(self, hostname="", port=""):
+        if port == "":
+            return {"Url": hostname}
+        else:
+            return {"Url": hostname, "Port": port}
+
+    def _build_conn_obj_host_port_ssh(self, hostname="", port=""):
+        if port == "":
+            return {"Terminal": {"Host": hostname}}
+        else:
+            return {"Terminal": {"Host": hostname, "HostPort": port}}
+
     def _build_rdm_connection_folder(self, **kwargs):
         """Set RDM connection folder (type 25).
 
@@ -617,130 +695,152 @@ class SMDevolutionsRdm(SessionMaker):
         self,
         folder="",
         session="",
-        hostname="",
-        port="",
-        username="",
-        rdm_credential="",
-        alternate_shell="",
-        rdm_host="",
-        rdm_script_before_open="",
+        # hostname="",
+        # port="",
+        # username="",
+        # alternate_shell="",
+        # rdm_credential="",
+        # rdm_host="",
+        # rdm_script_before_open="",
         **kwargs,
     ):
-        """Set RDM RDP session (type 1)
-
-        Check if RDP session not exists in self.__rdm_connection_list and add it.
+        """
+        Build an RDM (Remote Desktop Manager) RDP session connection object.
+        If session name is empty, it will be skipped.
 
         Args:
-            folder (str, optional, default=""): folder path
-            session (str): RDP session name
-            hostname (str, optional, default: ""): hostname/IP
-            port (str, optional, default: "3389"): port
-            alternate_shell (str, optional, default: ""): alternate shell (command executed on connection)
+            folder (str, optional): The folder where the session will be stored. Defaults to "".
+            session (str, optional): The name of the session. Defaults to "".
+            **kwargs: Additional keyword arguments that may include:
+                - hostname (str, optional): The hostname for the RDP connection.
+                - port (str, optional): The port for the RDP connection.
+                - username (str, optional): The username for the RDP connection.
+                - alternate_shell (str, optional): The RDP alternate shell.
+                - rdm_credential (str, optional): The RDM credential (linked, or private vault).
+                - rdm_host (str, optional): The RDM host (linked).
+                - rdm_script_before_open (str, optional): Path to script to run
+                                                          before opening connection.
+
+        Returns:
+            None
         """
 
         # arguments
         # folder = kwargs.get("folder", "")
-        self._build_rdm_connection_folder(folder=folder)
         # session = kwargs.get("session", "")
-        # hostname = kwargs.get("hostname", "")
-        # port = kwargs.get("port", "3389")
-        # username = kwargs.get("username", "")
-        # credential = kwargs.get("credential", "")
-        rdm_credential = rdm_credential.replace("/", "\\")
-        rdm_host = rdm_host.replace("/", "\\")
-        # credential_uuid = self.get_credential()
-        # alternate_shell = kwargs.get("alternate_shell", "")
+        hostname = kwargs.get("hostname", "")
+        port = kwargs.get("port", "")
+        username = kwargs.get("username", "")
+        alternate_shell = kwargs.get("alternate_shell", "")
+        rdm_credential = kwargs.get("rdm_credential", "")
+        rdm_host = kwargs.get("rdm_host", "")
+        rdm_script_before_open = kwargs.get("rdm_script_before_open", "")
 
         if session == "":
             logging.warning("Session without name. Skipping.")
             return
 
-        # sesion default data
-        sdd_excel = self.session_defaults.get("rdp", {}).get("excel", {})
+        # normalize paths
+        folder = self.normalize_string_path(folder)
+        rdm_credential = self.normalize_string_path(rdm_credential)
+        rdm_host = self.normalize_string_path(rdm_host)
+
+        # build folder hierarchy
+        self._build_rdm_connection_folder(folder=folder)
+
+        # session defaults data (with path normalization)
+        sdd_excel = self.get_session_defaults("rdp", "excel")
         keys_to_normalize = ["folder", "rdm_credential", "rdm_host"]
         sdd_excel = self.normalize_dict_path(sdd_excel, keys_to_normalize)
 
-        sdd_raw = self.session_defaults.get("rdp", {}).get("raw", {})
+        sdd_raw = self.get_session_defaults("rdp", "raw")
 
-        # session data
-        sd_excel = {
-            "port": port,
-            "rdm_credential": rdm_credential,
-            "rdm_host": rdm_host,
-            "rdm_script_before_open": rdm_script_before_open,
-        }
+        #
+        # current session data (for merging)
+        #
+        sd = {}
+        sd["port"] = port
+        sd["rdm_credential"] = rdm_credential
+        sd["rdm_host"] = rdm_host
+        sd["rdm_script_before_open"] = rdm_script_before_open
 
-        sd_excel = self.merge_session_data(sd_excel, sdd_excel)
-        sd_excel["folder"] = folder
-        sd_excel["session"] = session
-        sd_excel["alternate_shell"] = alternate_shell
+        # merge with excel defaults
+        sd = self.merge_session_data(sd, sdd_excel)
 
+        # add current session data
+        sd["conn_type"] = 1
+        sd["folder"] = folder
+        sd["session"] = session
+        sd["username"] = username
+        sd["hostname"] = hostname
+        sd["alternate_shell"] = alternate_shell
+
+        #
+        # build connection object
+        #
         conn_obj = {}
-        conn_obj["ConnectionType"] = 1
-        conn_obj["Group"] = folder
-        conn_obj["Name"] = session
-
-        # rdp specific
-        # conn_obj["Terminal"] = {}
-
-        # alternate shell
-        if alternate_shell != "":
-            conn_obj["AlternateShell"] = alternate_shell
-
-        # rdp
-        conn_obj["RDP"] = {}
-        conn_obj["RDP"]["NetworkLevelAuthentication"] = "false"
-
-        # any other
-        conn_obj["AuthentificationLevel"] = 2
-        conn_obj["OpenEmbedded"] = True
-
-        # script before open
-        if sd_excel["rdm_script_before_open"] != "":
-            # conn_obj["AllowPasswordVariable"] = True
-            conn_obj["Events"] = {}
-            conn_obj["Events"]["BeforeConnectionEmbeddedPowerShellScript"] = sd_excel[
-                "rdm_script_before_open"
-            ]
-            conn_obj["Events"]["BeforeConnectionEvent"] = 5
-            conn_obj["Events"]["BeforeConnectionWaitForExit"] = True
-            conn_obj["Events"]["ConnectionPause"] = 10
-            conn_obj["Events"]["ConnectionUseDefaultWorkingDirectory"] = False
+        conn_obj.update(
+            self._build_conn_obj_common(
+                sd["conn_type"],
+                sd["session"],
+                sd["folder"],
+            )
+        )
 
         # username, linked credential, private vault
-        if username != "" and sd_excel["rdm_credential"] == "":
-            conn_obj["RDP"]["Username"] = username
-            conn_obj["PromptCredentials"] = "true"
+        conn_obj.update(
+            self._build_conn_obj_username_rdp(
+                sd["username"],
+                sd["rdm_credential"],
+            )
+        )
 
-        elif sd_excel["rdm_credential"] != "":
-
-            if sd_excel["rdm_credential"].startswith("private:"):
-                # private vault
-                cr = sd_excel["rdm_credential"].lstrip("private:").strip()
-                conn_obj["CredentialPrivateVaultSearchString"] = cr
-            else:
-                # linked credential
-                conn_obj["CredentialConnectionSavedPath"] = sd_excel["rdm_credential"]
-                credential_uuid = self._get_rdm_connection_uuid(
-                    sd_excel["rdm_credential"]
+        # script before open
+        if sd["rdm_script_before_open"] != "":
+            # conn_obj["AllowPasswordVariable"] = True
+            conn_obj.update(
+                self._build_conn_obj_script_before_open(
+                    sd["rdm_script_before_open"],
                 )
-                conn_obj["CredentialConnectionID"] = credential_uuid
+            )
 
-        # host+port, linked host
-        if hostname != "" and sd_excel["rdm_host"] == "":
-            # hostname, port
-            conn_obj["Url"] = hostname
-            if sd_excel["port"] != "":
-                conn_obj["Port"] = sd_excel["port"]
+        # host+port
+        if sd["hostname"] != "" and sd["rdm_host"] == "":
+            conn_obj.update(
+                self._build_conn_obj_host_port_rdp(
+                    sd["hostname"],
+                    sd["port"],
+                )
+            )
 
-        elif sd_excel["rdm_host"] != "":
-            # linked host
-            conn_obj["HostSourceMode"] = 1
-            conn_obj["HostConnectionSavedPath"] = sd_excel["rdm_host"]
-            host_uuid = self._get_rdm_connection_uuid(sd_excel["rdm_host"])
-            conn_obj["HostConnectionID"] = host_uuid
+        # linked host
+        if sd["rdm_host"] != "":
+            conn_obj.update(
+                self._build_conn_obj_link_host(
+                    sd["rdm_host"],
+                )
+            )
 
-        # merge raw data
+        # alternate shell (rdp specific)
+        if alternate_shell != "":
+            conn_obj.update(
+                {
+                    "AlternateShell": sd["alternate_shell"],
+                }
+            )
+
+        # rdp (required)
+        conn_obj.update(
+            {
+                "RDP": {
+                    "NetworkLevelAuthentication": "false",
+                    "AuthentificationLevel": 2,
+                    "OpenEmbedded": "true",
+                }
+            }
+        )
+
+        # append raw defaults
         conn_obj = self.append_session_data(conn_obj, sdd_raw)
 
         # check duplicity
@@ -753,110 +853,129 @@ class SMDevolutionsRdm(SessionMaker):
         self,
         folder="",
         session="",
-        hostname="",
-        port="",
-        username="",
-        rdm_credential="",
-        rdm_host="",
-        rdm_script_before_open="",
-        # **kwargs,
+        # hostname="",
+        # port="",
+        # username="",
+        # rdm_credential="",
+        # rdm_host="",
+        # rdm_script_before_open="",
+        **kwargs,
     ):
-        """Set RDM SSH session (type 77)
-
-        Check if SSH session not exists in self.__rdm_connection_list and add it.
+        """
+        Build an RDM (Remote Desktop Manager) SSH session connection object.
+        If session name is empty, it will be skipped.
 
         Args:
-            folder (str, optional, default=""): folder path
-            session (str): SSH session name
-            hostname (str, optional, default: ""): hostname/IP
-            port (str, optional, default: "22"): port
+            folder (str, optional): The folder where the session will be stored. Defaults to "".
+            session (str, optional): The name of the session. Defaults to "".
+            **kwargs: Additional keyword arguments that may include:
+                - hostname (str, optional): The hostname for the SSH connection.
+                - port (str, optional): The port for the SSH connection.
+                - username (str, optional): The username for the SSH connection.
+                - rdm_credential (str, optional): The RDM credential (linked, or private vault).
+                - rdm_host (str, optional): The RDM host (linked).
+                - rdm_script_before_open (str, optional): Path to script to run
+                                                          before opening connection.
+
+        Returns:
+            None
         """
+
         # arguments
         # folder = kwargs.get("folder", "")
-        self._build_rdm_connection_folder(folder=folder)
         # session = kwargs.get("session", "")
-        # hostname = kwargs.get("hostname", "")
-        # port = kwargs.get("port", "")
-        # username = kwargs.get("username", "")
-        # credential = kwargs.get("credential", "")
-        rdm_credential = rdm_credential.replace("/", "\\")
-        rdm_host = rdm_host.replace("/", "\\")
-        # rdm_script_before_open = rdm_script_before_open.replace("\\", "\\\\")
+        hostname = kwargs.get("hostname", "")
+        port = kwargs.get("port", "")
+        username = kwargs.get("username", "")
+        rdm_credential = kwargs.get("rdm_credential", "")
+        rdm_host = kwargs.get("rdm_host", "")
+        rdm_script_before_open = kwargs.get("rdm_script_before_open", "")
 
         if session == "":
             logging.debug("Session without name. Skipping.")
             return
 
-        # sesion default data
-        sdd_excel = self.session_defaults.get("ssh", {}).get("excel", {})
-        sdd_raw = self.session_defaults.get("ssh", {}).get("raw", {})
+        # normalize paths
+        folder = self.normalize_string_path(folder)
+        rdm_credential = self.normalize_string_path(rdm_credential)
+        rdm_host = self.normalize_string_path(rdm_host)
 
-        # session data
-        sd_excel = {
-            "port": port,
-            "rdm_credential": rdm_credential,
-            "rdm_host": rdm_host,
-            "rdm_script_before_open": rdm_script_before_open,
-        }
+        # build folder hierarchy
+        self._build_rdm_connection_folder(folder=folder)
 
-        sd_excel = self.merge_session_data(sd_excel, sdd_excel)
+        # session defaults data (with path normalization)
+        sdd_excel = self.get_session_defaults("ssh", "excel")
+        keys_to_normalize = ["folder", "rdm_credential", "rdm_host"]
+        sdd_excel = self.normalize_dict_path(sdd_excel, keys_to_normalize)
 
-        port = sd_excel["port"]
+        sdd_raw = self.get_session_defaults("ssh", "raw")
 
+        #
+        # current session data (for merging)
+        #
+        sd = {}
+        sd["port"] = port
+        sd["rdm_credential"] = rdm_credential
+        sd["rdm_host"] = rdm_host
+        sd["rdm_script_before_open"] = rdm_script_before_open
+
+        # merge with excel defaults
+        sd = self.merge_session_data(sd, sdd_excel)
+
+        # add current session data
+        sd["conn_type"] = 77
+        sd["folder"] = folder
+        sd["session"] = session
+        sd["username"] = username
+        sd["hostname"] = hostname
+
+        #
+        # build connection object
+        #
         conn_obj = {}
-        conn_obj["ConnectionType"] = 77
-        conn_obj["Group"] = folder
-        conn_obj["Name"] = session
-        
-        conn_obj["Terminal"] = {}
-        
-
-        # ssh specific
-
-        # script before open
-        if sd_excel["rdm_script_before_open"] != "":
-            # conn_obj["AllowPasswordVariable"] = True
-            conn_obj["Events"] = {}
-            conn_obj["Events"]["BeforeConnectionEmbeddedPowerShellScript"] = sd_excel[
-                "rdm_script_before_open"
-            ]
-            conn_obj["Events"]["BeforeConnectionEvent"] = 5
-            conn_obj["Events"]["BeforeConnectionWaitForExit"] = True
-            conn_obj["Events"]["ConnectionPause"] = 10
-            conn_obj["Events"]["ConnectionUseDefaultWorkingDirectory"] = False
+        conn_obj.update(
+            self._build_conn_obj_common(
+                sd["conn_type"],
+                sd["session"],
+                sd["folder"],
+            )
+        )
 
         # username, linked credential, private vault
-        if username != "" and sd_excel["rdm_credential"] == "":
-            conn_obj["Terminal"]["Username"] = username
+        conn_obj.update(
+            self._build_conn_obj_username_ssh(
+                sd["username"],
+                sd["rdm_credential"],
+            )
+        )
 
-        elif rdm_credential != "":
-
-            if sd_excel["rdm_credential"].startswith("private:"):
-                # private vault
-                cr = sd_excel["rdm_credential"].lstrip("private:").strip()
-                conn_obj["CredentialPrivateVaultSearchString"] = cr
-            else:
-                # linked credential
-                conn_obj["CredentialConnectionSavedPath"] = sd_excel["rdm_credential"]
-                credential_uuid = self._get_rdm_connection_uuid(
-                    sd_excel["rdm_credential"]
+        # script before open
+        if sd["rdm_script_before_open"] != "":
+            # conn_obj["AllowPasswordVariable"] = True
+            conn_obj.update(
+                self._build_conn_obj_script_before_open(
+                    sd["rdm_script_before_open"],
                 )
-                conn_obj["CredentialConnectionID"] = credential_uuid
+            )
 
-        # host+port, linked host
-        if hostname != "" and sd_excel["rdm_host"] == "":
-            conn_obj["Terminal"]["Host"] = hostname
-            if sd_excel["port"] != "":
-                conn_obj["Terminal"]["HostPort"] = sd_excel["port"]
+        # host+port
+        if sd["hostname"] != "" and sd["rdm_host"] == "":
+            conn_obj.update(
+                self._build_conn_obj_host_port_ssh(
+                    sd["hostname"],
+                    sd["port"],
+                )
+            )
 
-        elif sd_excel["rdm_host"] != "":
-            # linked host
-            conn_obj["HostSourceMode"] = 1
-            conn_obj["HostConnectionSavedPath"] = sd_excel["rdm_host"]
-            host_uuid = self._get_rdm_connection_uuid(sd_excel["rdm_host"])
-            conn_obj["HostConnectionID"] = host_uuid
+        # linked host
+        if sd["rdm_host"] != "":
+            conn_obj.update(
+                self._build_conn_obj_link_host(
+                    sd["rdm_host"],
+                )
+            )
 
-        # merge raw data
+        # append raw defaults
         conn_obj = self.append_session_data(conn_obj, sdd_raw)
 
         # check duplicity
@@ -865,7 +984,19 @@ class SMDevolutionsRdm(SessionMaker):
 
         self._rdm_connection_list.append(conn_obj)
 
-    def _build_rdm_connection_web_session(self, **kwargs):
+    def _build_rdm_connection_web_session(
+        self,
+        folder="",
+        session="",
+        # hostname="",
+        # port="",
+        # username="",
+        # alternate_shell="",
+        # rdm_credential="",
+        # rdm_host="",
+        # rdm_script_before_open="",
+        **kwargs,
+    ):
         """Set RDM Web based session (type 32)
 
         Check if Web session not exists in self.__rdm_connection_list and add it.
@@ -880,14 +1011,17 @@ class SMDevolutionsRdm(SessionMaker):
             web_login (str, optional): web login field id
             web_passwd (str, optional): web password field id
         """
+        # TODO: doupratovat web session
         # arguments
-        folder = kwargs.get("folder", "")
-        self._build_rdm_connection_folder(folder=folder)
-        session = kwargs.get("session", "")
+        # folder = kwargs.get("folder", "")
+        # session = kwargs.get("session", "")
         hostname = kwargs.get("hostname", "")
+        port = kwargs.get("port", "")
         username = kwargs.get("username", "")
         credential = kwargs.get("credential", "")
-        credential = credential.replace("/", "\\")
+        rdm_credential = kwargs.get("rdm_credential", "")
+        rdm_host = kwargs.get("rdm_host", "")
+        rdm_script_before_open = kwargs.get("rdm_script_before_open", "")
         web_form = kwargs.get("web_form", "")
         web_login = kwargs.get("web_login", "")
         web_passwd = kwargs.get("web_passwd", "")
@@ -896,10 +1030,78 @@ class SMDevolutionsRdm(SessionMaker):
             logging.warning("Session without name. Skipping.")
             return
 
-        conn_obj = dict()
-        conn_obj["ConnectionType"] = 32
-        conn_obj["Group"] = folder
-        conn_obj["Name"] = session
+        # normalize paths
+        folder = self.normalize_string_path(folder)
+        rdm_credential = self.normalize_string_path(rdm_credential)
+        rdm_host = self.normalize_string_path(rdm_host)
+
+        # build folder hierarchy
+        self._build_rdm_connection_folder(folder=folder)
+
+        # session defaults data (with path normalization)
+        sdd_excel = self.get_session_defaults("web", "excel")
+        keys_to_normalize = ["folder", "rdm_credential", "rdm_host"]
+        sdd_excel = self.normalize_dict_path(sdd_excel, keys_to_normalize)
+
+        sdd_raw = self.get_session_defaults("web", "raw")
+
+        #
+        # current session data (for merging)
+        #
+        sd = {}
+        sd["port"] = port
+        sd["rdm_credential"] = rdm_credential
+        sd["rdm_host"] = rdm_host
+        sd["rdm_script_before_open"] = rdm_script_before_open
+        sd["web_form"] = web_form
+        sd["web_login"] = web_login
+        sd["web_passwd"] = web_passwd
+
+        # merge with excel defaults
+        sd = self.merge_session_data(sd, sdd_excel)
+
+        # add current session data
+        sd["conn_type"] = 32
+        sd["folder"] = folder
+        sd["session"] = session
+        sd["username"] = username
+        sd["hostname"] = hostname
+
+        #
+        # build connection object
+        #
+        conn_obj = {}
+        conn_obj.update(
+            self._build_conn_obj_common(
+                sd["conn_type"],
+                sd["session"],
+                sd["folder"],
+            )
+        )
+
+        # username
+        if username != "" and credential == "":
+            conn_obj.update(
+                {
+                    "DataEntry": {
+                        "WebUserName": sd["username"],
+                    }
+                }
+            )
+
+        # linked credential, private vault
+        if credential != "":
+            # conn_obj["DataEntry"]["CredentialConnectionSavedPath"] = credential
+            credential_uuid = self._get_rdm_connection_uuid(sd["rdm_credential"])
+            conn_obj.update(
+                {
+                    "DataEntry": {
+                        "CredentialConnectionID": credential_uuid,
+                        "CredentialConnectionSavedPath": sd["credential"],
+                    }
+                }
+            )
+
         conn_obj["OpenEmbedded"] = True
         conn_obj["DataEntry"] = {}
         conn_obj["DataEntry"]["Url"] = hostname
@@ -913,16 +1115,6 @@ class SMDevolutionsRdm(SessionMaker):
         conn_obj["DataEntry"]["WebUsernameHtmlElementName"] = web_login
         conn_obj["DataEntry"]["WebPasswordHtmlElementName"] = web_passwd
         conn_obj["DataEntry"]["WebSubmitHtmlElementName"] = "[ENTER]"
-
-        # username
-        if username != "" and credential == "":
-            conn_obj["DataEntry"]["WebUserName"] = username
-
-        # credential
-        if credential != "":
-            # conn_obj["DataEntry"]["CredentialConnectionSavedPath"] = credential
-            credential_uuid = self._get_rdm_connection_uuid(credential)
-            conn_obj["DataEntry"]["CredentialConnectionID"] = credential_uuid
 
         # check duplicity
         if conn_obj in self._rdm_connection_list:
@@ -988,6 +1180,7 @@ class SMDevolutionsRdm(SessionMaker):
                     port=self._sessions_dict["port"][idx],
                     username=self._sessions_dict["username"][idx],
                     rdm_credential=self._sessions_dict["rdm_credential"][idx],
+                    rdm_host=self._sessions_dict["rdm_host"][idx],
                     alternate_shell=self._sessions_dict["rdp_alternate"][idx],
                     rdm_script_before_open=self._sessions_dict[
                         "rdm_script_before_open"

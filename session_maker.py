@@ -237,7 +237,7 @@ def rdm_maker(
     if not quiet:
         print("Reading Excel book...")
 
-    stg.read_session_defaults(type="rdm")
+    stg.read_session_defaults(client_type="rdm")
     sm_rdm = SMDevolutionsRdm(
         settings=stg.app_config,
         excel_file=src_file,

@@ -366,6 +366,7 @@ class SMDevolutionsRdm(SessionMaker):
                 # private vault
                 cr = credential.lstrip("private:").strip()
                 conn_obj["CredentialPrivateVaultSearchString"] = cr
+                conn_obj["CredentialConnectionID"] = "88E4BE76-4C5B-4694-AA9C-D53B7E0FE0DC"
             else:
                 # linked credential
                 credential_uuid = self._get_rdm_connection_uuid(credential)
@@ -1174,18 +1175,18 @@ class SMDevolutionsRdm(SessionMaker):
         """Set __rdm_connection_list from _rdm_hosts_dict"""
 
         # get credentials/credentials in a loop
-        for idx, host_row in enumerate(self._rdm_hosts_dict["name"]):
+        for name_idx, name_val in enumerate(self._rdm_hosts_dict["name"]):
             # get folders structure
-            folder_path = self._rdm_hosts_dict["folder"][idx]
+            folder_path = self._rdm_hosts_dict["folder"][name_idx]
             folder_path = folder_path.replace("/", "\\")
 
             # host (#53)
             self._build_rdm_connection_host(
                 folder=folder_path,
-                conn_name=self._rdm_hosts_dict["name"][idx],
-                # hostname=self._rdm_hosts_dict["host"][idx],
-                hostname=host_row,
-                rdm_credential=self._rdm_hosts_dict["rdm_credential"][idx],
+                # conn_name=self._rdm_hosts_dict["name"][idx],
+                conn_name=name_val,
+                hostname=self._rdm_hosts_dict["host"][name_idx],                
+                rdm_credential=self._rdm_hosts_dict["rdm_credential"][name_idx],
             )
 
         return self._rdm_connection_list

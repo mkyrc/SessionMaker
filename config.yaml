@@ -65,5 +65,8 @@ scrt:
     credential: templates/scrt_default_credential.xml
     firewall: templates/scrt_default_firewall.xml
 
+# ==========
+# RDM settings
+# ==========
 rdm:
   session_defaults: session_defaults/rdm.d/

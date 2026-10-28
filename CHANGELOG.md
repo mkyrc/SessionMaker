@@ -2,6 +2,17 @@
 
 <!-- https://keepachangelog.com/en/1.0.0/ -->
 
+## Unreleased
+
+### Changed
+
+- Project layout: scripts, `lib`, `templates`, `data` and `config.yaml` moved to `src/`
+
+### Added
+
+- SessionMaker: initial Remmina export support (Excel -> `.remmina` profiles)
+- SessionReader: initial Remmina import support (`.remmina` file(s)/folder -> Excel)
+
 ## 0.4.0-rc.1 (2024-11-22)
 
 ### Update

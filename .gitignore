@@ -3,7 +3,8 @@
 .vscode/*
 
 # venv
-.venv/*
+.venv
+.env
 
 # temporary files
 __pycache__

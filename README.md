@@ -39,8 +39,8 @@ Excel workbook to SecureCRT and/or Devolutions RDM sessions (and vice-versa) con
 
 There are two parts:
 
-- [**Session Maker**](#session-maker) - Generate SecureCRT `XML` or Devolutions RDM `JSON` file from Excel book source (Excel -> XML/JSON)
-- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT `XML` sessions export file (XML -> Excel).
+- [**Session Maker**](#session-maker) - Generate SecureCRT `XML`, Devolutions RDM `JSON`, or Remmina `.remmina` profiles from Excel book source
+- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT `XML` or Remmina `.remmina` profiles
 
 ### Important news
 
@@ -69,17 +69,20 @@ graph LR;
     Excel["Excel (xlsx)"]-->SM("Session Maker")
     SM-->scrt["SecureCRT (xml)"]
     SM-->rdm["DevolutionsRDM (json)"];
+    SM-->remmina["Remmina (*.remmina)"];
 ```
 
 ### Usage
 
 It is simple - read help :).
 
+Run the scripts from the `src` folder (`cd src`); all paths below are relative to it.
+
 ```
 $ python3 session_maker.py -h
-usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm}] [--write DESTINATION | -p] [-q | -v] source
+usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm,remmina}] [--write DESTINATION | -p] [-q | -v] source
 
-Read Excel file (source) and generate sessions XML file for [SecureCRT|Devolutions].
+Read Excel file (source) and generate sessions output for [SecureCRT|Devolutions|Remmina].
 
 positional arguments:
   source                Source (XLS) file
@@ -87,7 +90,8 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration settings file (default=config.yaml)
-  --type {scrt,rdm}     Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM
+  --type {scrt,rdm,remmina}
+                        Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM, remmina=Remmina
   --write DESTINATION, -w DESTINATION
                         Write to file. If not specified, write to 'export' subfolder as the source.
   -p, --print           Print to screen only (don't write it to the file).
@@ -95,10 +99,12 @@ options:
   -v, --verbose         Verbose output. (use: -v, -vv)
 ```
 
-XML content can be exported to:
+Export can be written as:
 
-- **file**: Option `--write`. If not defined, the file is stored in `export` subfolder
+- **file/folder**: Option `--write`. If not defined, output is stored in `export` subfolder
 - **stdout**: Option `--print`.
+
+> **Note:** For `--type remmina`, export is generated as multiple `.remmina` files in a destination folder (one file per session) and `--print` is not supported.
 
 ### Example
 
@@ -181,11 +187,12 @@ devices-v0.3.x.json
 
 ## Session Reader
 
-Reads SecureCRT sessions XML file (SecureCRT menu: `Tools -> Export settings...`) and export it to Excel workbook.
+Reads SecureCRT sessions XML file (SecureCRT menu: `Tools -> Export settings...`) or Remmina profile file(s) and export it to Excel workbook.
 
 ```mermaid
 graph LR;
     scrt["SecureCRT (XML)"]-->SR("Session Reader")
+    remmina["Remmina (*.remmina)"]-->SR("Session Reader")
     SR-->Excel["Excel (xlsx)"]
 
 ```
@@ -194,16 +201,18 @@ graph LR;
 
 ```
 $ python session_reader.py -h
-usage: session_reader.py [-h] [--config CONFIG] [-w DESTINATION] [-q | -v] source
+usage: session_reader.py [-h] [--config CONFIG] [--type {scrt,remmina}] [-w DESTINATION] [-q | -v] source [source ...]
 
-Read SecureCRT sessions XML file (source) and export it to Excel file (write to destination).
+Read SecureCRT XML or Remmina profile(s) and export them to Excel file (write to destination).
 
 positional arguments:
-  source                SecureCRT sessions XML file (export from SecureCRT).
+  source                Source file(s) or folder(s): SecureCRT XML or Remmina profile(s).
 
 options:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration settings file (default=config.yaml)
+  --type {scrt,remmina}
+                        Source type: scrt=SecureCRT XML (default), remmina=Remmina profile(s).
   -w DESTINATION, --write DESTINATION
                         Write to destination Excel (xlsx) file. If not defined, write to the 'export' subfolder.
   -q, --quiet           Quiet output.
@@ -211,6 +220,8 @@ options:
 ```
 
 If `--write` option is not defined, destination file is exported to `export` subfolder.
+
+For Remmina import (`--type remmina`) you can provide one or more `.remmina` files and/or folders. Folder content is searched recursively for `*.remmina` files.
 
 ### Example
 
@@ -261,7 +272,7 @@ Excel workbook contains 4 worksheets:
 - **[scrt-firewalls](#scrt-firewalls-worksheet-columns)**: SecureCRT firewall groups list
 
 > **Note:** <br>
-> All column names described below can be changed in [config.yaml](config.yaml) file.
+> All column names described below can be changed in [config.yaml](src/config.yaml) file.
 
 
 ### 'sessions' worksheet columns
@@ -287,7 +298,7 @@ Excel workbook contains 4 worksheets:
 | scrt firewall group     |          |            | Firewall group or Session name (path/to/session)               |
 
 > **Note:**
-> For details see `['excel']['col_names_sessions']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_sessions']` in [config.yaml](src/config.yaml) file.
 
 ### 'rdm-credentials' worksheet columns
 
@@ -298,7 +309,7 @@ Excel workbook contains 4 worksheets:
 | username        |          |         | Username           |
 
 > **Note:**
-> For details see `['excel']['col_names_rdm_credentials']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_rdm_credentials']` in [config.yaml](src/config.yaml) file.
 
 ### 'scrt-credentials' worksheet columns
 
@@ -308,7 +319,7 @@ Excel workbook contains 4 worksheets:
 | username         |          |         | Username              |
 
 > **Note:**
-> For details see `['excel']['col_names_scrt_credentials']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_scrt_credentials']` in [config.yaml](src/config.yaml) file.
 
 ### 'scrt-firewalls' worksheet columns
 
@@ -320,11 +331,11 @@ Excel workbook contains 4 worksheets:
 | username       |          |         | Username               |
 
 > **Note:**
-> For details see `['excel']['col_names_scrt_firewalls']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_scrt_firewalls']` in [config.yaml](src/config.yaml) file.
 
 ## Configuration
 
-Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize For more detials see [config.yaml](config.yaml) file.
+Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize For more detials see [config.yaml](src/config.yaml) file.
 
 ## Versioning
 

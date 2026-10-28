@@ -5,3 +5,4 @@ from .settings import read_config_file
 
 from .sm_scrt import SMSecureCrt
 from .sm_rdm import SMDevolutionsRdm
+from .sm_remmina import SMRemmina

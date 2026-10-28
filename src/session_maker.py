@@ -13,14 +13,15 @@ Revision:
         - initial version
 """
 
-# import logging
+import logging
 import os.path
 from pathlib import Path
 from datetime import datetime
 
 # import lib
-from lib import parse_maker_args, init_logging, set_config_file, read_config_file
-from lib import SMSecureCrt, SMDevolutionsRdm
+from lib import parse_maker_args, init_logging
+from lib.settings import Settings
+from lib.sm import SMSecureCrt, SMDevolutionsRdm, SMRdp, SMRemmina
 
 # ====================
 # Main functions
@@ -38,7 +39,7 @@ def main():
     ## default settings
     config_file = "config.yaml"  # default settings file
     src_file = None  # Excel file
-    dst_file = None  # SecureCRT XML or Devolutions RDM JSON file
+    dst_file = None  # destination file/folder
 
     # arguments
     # ==========
@@ -49,10 +50,13 @@ def main():
     # read config file
     # if undefined, use 'config.yaml'
     if ARGS.config:
-        config_file = set_config_file(ARGS.config.strip(), config_file)
+        config_file = ARGS.config.strip()
 
-    config_data = read_config_file(config_file)
-    if config_data is False:
+    stg = Settings(config_file)
+
+    # config_data = read_config_file(config_file)
+    if stg.app_config is None:
+        logging.error("Unable to read configuration file '%s'.", config_file)
         return
 
     # source file (excel)
@@ -73,6 +77,10 @@ def main():
                 dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-scrt.xml"
             if ARGS.type == "rdm":
                 dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdm.json"
+            if ARGS.type == "rdp":
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdp"
+            if ARGS.type == "remmina":
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-remmina"
 
     if not ARGS.quiet:
         print("Done.")
@@ -85,7 +93,7 @@ def main():
         # SecureCRT sessions (XML content) maker
 
         scrt_maker(
-            settings=config_data,
+            stg=stg,
             src_file=src_file,
             dst_file=dst_file,
             quiet=ARGS.quiet,
@@ -95,9 +103,27 @@ def main():
     if ARGS.type == "rdm":
         # Devolutions RDM session (JSON content) maker
         rdm_maker(
-            settings=config_data,
+            stg=stg,
             src_file=src_file,
             dst_file=dst_file,
+            quiet=ARGS.quiet,
+            stdout=ARGS.print,
+        )
+
+    if ARGS.type == "rdp":
+        rdp_maker(
+            settings=stg.app_config,
+            src_file=src_file,
+            dst_folder=dst_file,
+            quiet=ARGS.quiet,
+            stdout=ARGS.print,
+        )
+
+    if ARGS.type == "remmina":
+        remmina_maker(
+            settings=stg.app_config,
+            src_file=src_file,
+            dst_folder=dst_file,
             quiet=ARGS.quiet,
             stdout=ARGS.print,
         )
@@ -109,9 +135,9 @@ def main():
 
 
 def scrt_maker(
+    stg: Settings,
     src_file: str | None = None,
     dst_file: str | None = None,
-    settings=None,
     quiet=False,
     stdout=False,
 ):
@@ -123,8 +149,6 @@ def scrt_maker(
     # dst_file = kwargs.get("dst_file", "")  # dst XML file
     # quiet = kwargs.get("quiet", False)
     # stdout = kwargs.get("stdout", False)
-    if settings is None:
-        settings = {}
 
     # Reading Excel
     # ==========
@@ -132,15 +156,21 @@ def scrt_maker(
     if not quiet:
         print("Reading Excel book...")
 
-    sm_scrt = SMSecureCrt(settings=settings, excel_file=src_file, read_excel_file=True)
+    sm_scrt = SMSecureCrt(
+        settings=stg.app_config,
+        excel_file=src_file,
+        read_excel_file=True,
+    )
 
     # get excel content (and set object's attribute(s))
-    sessions_dict = sm_scrt.excel_read_sheet_sessions(settings["excel"]["tab_sessions"])
+    sessions_dict = sm_scrt.excel_read_sheet_sessions(
+        stg.app_config["excel"]["tab_sessions"]
+    )
     credentials_dict = sm_scrt.excel_read_sheet_credentials(
-        settings["excel"]["tab_scrt_credentials"]
+        stg.app_config["excel"]["tab_scrt_credentials"]
     )
     firewalls_dict = sm_scrt.excel_read_sheet_firewalls(
-        settings["excel"]["tab_scrt_firewalls"]
+        stg.app_config["excel"]["tab_scrt_firewalls"]
     )
 
     if sessions_dict is False or credentials_dict is False or firewalls_dict is False:
@@ -168,7 +198,7 @@ def scrt_maker(
 
     scrt_xml = sm_scrt.build_xml_from_dict()
 
-    if scrt_xml == None:
+    if scrt_xml is None:
         if not quiet:
             print("No sessions. Exit.")
         return
@@ -197,9 +227,9 @@ def scrt_maker(
 
 
 def rdm_maker(
+    stg: Settings,
     src_file: str | None = None,
     dst_file: str | None = None,
-    settings=None,
     quiet=False,
     stdout=False,
 ):
@@ -209,9 +239,10 @@ def rdm_maker(
     Args:
         src_file (str, optional): Path to the source Excel file. Defaults to None.
         dst_file (str, optional): Path to the destination JSON file. Defaults to None.
-        settings (dict, optional): Configuration settings for reading and processing the Excel file. Defaults to {}.
+        stg (Settings): App settings. Defaults
         quiet (bool, optional): If True, suppresses output messages. Defaults to False.
-        stdout (bool, optional): If True, prints the JSON content to stdout instead of writing to a file. Defaults to False.
+        stdout (bool, optional): If True, prints the JSON content to stdout 
+                                 instead of writing to a file. Defaults to False.
 
     Returns:
         None
@@ -223,8 +254,6 @@ def rdm_maker(
     # dst_file = kwargs.get("dst_file", "")  # dst JSON file
     # quiet = kwargs.get("quiet", False)
     # stdout = kwargs.get("stdout", False)
-    if settings is None:
-        settings = {}
 
     # Reading Excel
     # ==========
@@ -232,16 +261,24 @@ def rdm_maker(
     if not quiet:
         print("Reading Excel book...")
 
+    stg.read_session_defaults(client_type="rdm")
     sm_rdm = SMDevolutionsRdm(
-        settings=settings, excel_file=src_file, read_excel_file=True
+        settings=stg.app_config,
+        excel_file=src_file,
+        read_excel_file=True,
+        session_defaults_rdm=stg.rdm_session_defaults,
     )
 
     # get content (and set object's attribute(s))
-    sessions_dict = sm_rdm.excel_read_sheet_sessions(settings["excel"]["tab_sessions"])
-    credentials_dict = sm_rdm.excel_read_sheet_credentials(
-        settings["excel"]["tab_rdm_credentials"]
+    sessions_dict = sm_rdm.excel_read_sheet_sessions(
+        stg.app_config["excel"]["tab_sessions"]
     )
-    hosts_dict = sm_rdm.excel_read_sheet_rdm_hosts(settings["excel"]["tab_rdm_hosts"])
+    credentials_dict = sm_rdm.excel_read_sheet_credentials(
+        stg.app_config["excel"]["tab_rdm_credentials"]
+    )
+    hosts_dict = sm_rdm.excel_read_sheet_rdm_hosts(
+        stg.app_config["excel"]["tab_rdm_hosts"]
+    )
 
     # if sessions_dict is False or credentials_dict is False or hosts_dict is False:
     if sessions_dict is False:
@@ -299,6 +336,94 @@ def rdm_maker(
 
     if not quiet:
         print("Done.")
+
+
+def rdp_maker(
+    src_file: str | None = None,
+    dst_folder: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
+    if settings is None:
+        settings = {}
+
+    if stdout:
+        if not quiet:
+            print("RDP export does not support '--print'. Use '--write' to define destination folder.")
+        return
+
+    if not quiet:
+        print("Reading Excel book...")
+
+    sm_rdp = SMRdp(settings=settings, excel_file=src_file, read_excel_file=True)
+
+    sessions_dict = sm_rdp.excel_read_sheet_sessions(settings["excel"]["tab_sessions"])
+
+    if sessions_dict is False:
+        if not quiet:
+            print("Exit.")
+        return
+
+    if not quiet:
+        c_total = sm_rdp.get_sessions_dict_count()
+        c_rdp = sm_rdp.get_sessions_dict_count(["rdp"])
+        print(f"Done. {c_total} session(s) (rdp: {c_rdp}) from Excel.")
+
+    if not quiet:
+        print("Building RDP files...")
+
+    created_count, skipped_count = sm_rdp.write_rdp_files(str(dst_folder))
+
+    if not quiet:
+        print(
+            f"Done. Created {created_count} profile(s), skipped {skipped_count} session(s)."
+        )
+        print(f"Export folder: '{dst_folder}'")
+
+
+def remmina_maker(
+    src_file: str | None = None,
+    dst_folder: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
+    if settings is None:
+        settings = {}
+
+    if stdout:
+        if not quiet:
+            print("Remmina export does not support '--print'. Use '--write' to define destination folder.")
+        return
+
+    if not quiet:
+        print("Reading Excel book...")
+
+    sm_remmina = SMRemmina(settings=settings, excel_file=src_file, read_excel_file=True)
+
+    sessions_dict = sm_remmina.excel_read_sheet_sessions(settings["excel"]["tab_sessions"])
+
+    if sessions_dict is False:
+        if not quiet:
+            print("Exit.")
+        return
+
+    if not quiet:
+        c_total = sm_remmina.get_sessions_dict_count()
+        c_rdp = sm_remmina.get_sessions_dict_count(["rdp"])
+        print(f"Done. {c_total} session(s) (rdp: {c_rdp}) from Excel.")
+
+    if not quiet:
+        print("Building Remmina profiles...")
+
+    created_count, skipped_count = sm_remmina.write_remmina_files(str(dst_folder))
+
+    if not quiet:
+        print(
+            f"Done. Created {created_count} profile(s), skipped {skipped_count} session(s)."
+        )
+        print(f"Export folder: '{dst_folder}'")
 
 
 # ====================

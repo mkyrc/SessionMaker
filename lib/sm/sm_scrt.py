@@ -1,9 +1,10 @@
 """SecureCRT session generator"""
+
 import logging
 import xml.etree.ElementTree as ET
 
-from .sm_class import SessionMaker
-from .sm_xml import SMXml
+from lib.sm import SessionMaker
+from lib.io import SMXml
 
 
 # ========================================
@@ -12,7 +13,17 @@ from .sm_xml import SMXml
 class SMSecureCrt(SessionMaker):
     """SessionMaker - SecureCRT sessions generator class"""
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        settings: dict | None = None,
+        excel_file: str | None = None,
+        xml_file: str = "",
+        read_excel_file=False,
+        credentials: dict | None = None,
+        firewalls: dict | None = None,
+        session_defaults_rdm: dict = {},
+        **kwargs,
+    ):
         """Initial method
 
         Args:
@@ -34,14 +45,19 @@ class SMSecureCrt(SessionMaker):
         # - self._sessions_dict
         # - self._credentials_dict
         # - self._xml_session_file
-        super().__init__(**kwargs)
+        super().__init__(
+            settings,
+            excel_file,
+            read_excel_file=True,
+            session_defaults=session_defaults_rdm,
+        )
 
         # credential groups dict
-        self.set_credentials_dict(kwargs.get("credentials", None))
+        self.set_credentials_dict(credentials)
 
         # firewall groups dict
         self._firewalls_dict = dict()
-        self.set_firewalls_dict(kwargs.get("firewalls", None))
+        self.set_firewalls_dict(firewalls)
 
     # ========================================
     # Private methods
@@ -125,7 +141,7 @@ class SMSecureCrt(SessionMaker):
                 if key in keys:
                     try:
                         self._credentials_dict[key] = list(map(str, credentials[key]))
-                    except KeyError as err:
+                    except KeyError:
                         logging.warning(
                             "Missing  column name '%s' (key: '%s'.)",
                             excel_col_name[key],
@@ -571,7 +587,7 @@ class SMSecureCrt(SessionMaker):
         # get folder path and session in a loop
         for idx, session_row in enumerate(self._sessions_dict["session"]):
             # get folders structure
-            folder_path = self._sessions_dict["folder"][idx]
+            folder_path = self._sessions_dict["folder"][idx].rstrip("/")
             if folder_path == "":
                 # no folder path
                 folders_xml = None

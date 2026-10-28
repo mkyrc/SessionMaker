@@ -1,14 +1,13 @@
 """Session Maker master class"""
 
 import logging
-import os.path
-from pathlib import Path
+
+# import os.path
+# from pathlib import Path
 import xml.etree.ElementTree as ET
 import xmltodict
 
-from .sm_excel import SMExcel
-from .sm_xml import SMXml
-from .sm_json import SMJson
+from lib.io import SMExcel, SMXml, SMJson
 
 
 # logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
@@ -35,6 +34,7 @@ class SessionMaker:
         read_xml_file=False,
         # json_file="",
         # read_json_file=False,
+        session_defaults: dict | None = None,
         **kwargs,
     ):
         """Initial class method.
@@ -52,9 +52,9 @@ class SessionMaker:
 
         # settings (dict, config.yaml content)
         if settings is None:
-            self._settings = {}
-        else:
-            self.set_settings(settings)
+            raise ValueError("Missing settings (config.yaml) content.")
+
+        self.set_settings(settings)
 
         # excel_file path (str). if set, initiate excel_obj
         self.excel_file = ""
@@ -67,6 +67,12 @@ class SessionMaker:
 
         # credential groups dict
         self._credentials_dict = {}
+
+        # session defaults
+        if session_defaults is None:
+            self.session_defaults = {}
+        else:
+            self.session_defaults = session_defaults
 
         # XML file
         self.xml_file = ""
@@ -87,12 +93,80 @@ class SessionMaker:
         )
 
     # ====================
-    # private methods
+    # working with defaults
     # ====================
 
-    # ====================
-    # protected methods
-    # ====================
+    def get_session_defaults(self, session_type="", defaults_type="excel") -> dict:
+        """
+        Return session defaults based on specific session type (ssh, rdp, etc.)
+        and source ([excel, raw]).
+
+        Args:
+            session_type (str, optional): Type of session [[ssh, rdp, web, etc.]]. Defaults to "".
+            defaults_type (str, optional): Content type [excel, raw]. Defaults to "excel".
+
+        Returns:
+            dict: Session defaults for specific session type and defaults type
+        """
+        if session_type == "":
+            return self.session_defaults
+        return self.session_defaults.get(session_type, {}).get(defaults_type, {})
+
+    def merge_session_data(
+        self, session: dict, session_to_merge: dict, append=False
+    ) -> dict:
+        """
+        If session[key] is not defined, update it with session_defaults[key].
+
+        Args:
+            session (dict): Session data
+            session_to_merge (dict): Session default data
+            append (bool): Append unused keys to session data
+
+        Returns:
+            dict: Merged session
+        """
+
+        # ret = session.copy()
+        # merge session data with session defaults
+        for key, value in session.items():
+            if isinstance(value, dict):
+                session[key] = self.merge_session_data(
+                    value, session_to_merge.get(key, {})
+                )
+            elif value == "" and key in session_to_merge:
+                session[key] = session_to_merge[key]
+
+        # merge defaults to session (add unused keys)
+        # session_defaults.update(session)
+        if append:
+            session = self.append_session_data(session, session_to_merge)
+
+        return session
+
+    def append_session_data(self, session: dict, session_to_append: dict) -> dict:
+        """
+        Appends data from one session dictionary to another session dictionary.
+        This method recursively merges the contents of `session_to_append` into `session`.
+        If a key in `session_to_append` corresponds to a dictionary, the method will
+        recursively merge the dictionaries. If a key in `session_to_append` does not
+        exist in `session`, it will be added.
+        Args:
+            session (dict): The original session dictionary to which data will be appended.
+            session_to_append (dict): The session dictionary containing data to append.
+        Returns:
+            dict: The updated session dictionary with the appended data.
+        """
+
+        for key, value in session_to_append.items():
+            if isinstance(value, dict):
+                session[key] = self.append_session_data(
+                    value, session_to_append.get(key, {})
+                )
+            elif key not in session:
+                session[key] = value
+
+        return session
 
     # ====================
     # public methods
@@ -114,24 +188,30 @@ class SessionMaker:
         """
         return self._sessions_dict
 
-    def get_sessions_dict_count(self, type=[""]) -> int:
-        """Return sessions dictionary size.
-
-        Args:
-            type (str): Type of session. If empty, return all sessions
-        Returns:
-            (int): Sessions groups dict count
+    def get_sessions_dict_count(self, session_type: list | None = None) -> int:
         """
+        Get the count of sessions in the _sessions_dict attribute.
+        When session_type_list is defined, count only sessions that match the types in the list.
+        If no session_type_list is provided, count all sessions.
+        Args:
+            session_type (list | None): A list of session types to count. If None,
+                                        all session types are counted.
+        Returns:
+            int: The count of sessions.
+        """
+
         # return len(self._sessions_dict["session"])
         session_count = 0
 
-        for idx, session_type in enumerate(self._sessions_dict["type"]):
-            if self._sessions_dict["session"][idx] == "":
+        for st_idx, st_val in enumerate(self._sessions_dict["type"]):
+            if self._sessions_dict["session"][st_idx] == "":
                 # empty session name, skip it
                 continue
-            if "" in type:
+            if session_type is None:
+                # count every session type
                 session_count += 1
-            elif session_type in type:
+            elif st_val in session_type:
+                # count only requested session types
                 session_count += 1
 
         return session_count
@@ -164,7 +244,9 @@ class SessionMaker:
             self.excel_read_book()
 
     def set_json_file(self, json_file: str, read_json_file=False):
-        """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
+        """
+        Set XML file attribute.
+        If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:
             xml_file (str): XML file (source or destination)
@@ -176,8 +258,10 @@ class SessionMaker:
         #     # self._xml_obj = SMXml(xml_file=self.xml_file, read_xml_file=True)
         #     self.parse_json_file()
 
-    def set_xml_file(self, xml_file: str|None, read_xml_file=False):
-        """Set XML file attribute. If xml_file is not empty, initialize self._xml_obj (read content).
+    def set_xml_file(self, xml_file: str | None, read_xml_file=False):
+        """
+        Set XML file attribute.
+        If xml_file is not empty, initialize self._xml_obj (read content).
 
         Args:
             xml_file (str): XML file (source or destination)
@@ -198,6 +282,7 @@ class SessionMaker:
             False in case of error (missing required column)
             True when success
         """
+        # general fields (columns) in excel file
         excel_col_name = self._settings["excel"]["col_names_sessions"]
         keys = [
             "folder",
@@ -272,7 +357,9 @@ class SessionMaker:
 
         return False
 
-    def excel_read_sheet(self, sheet_name: str, type="column") -> dict | list | bool:
+    def excel_read_sheet(
+        self, sheet_name: str, read_mode="column"
+    ) -> dict | list | bool:
         """Read excel sheet and return content as dict/array.
 
         Args:
@@ -284,7 +371,7 @@ class SessionMaker:
             array: Array (when get=['array']
             False: In case of error
         """
-        return self._excel_obj.read_excel_sheet(sheet_name, type)
+        return self._excel_obj.read_excel_sheet(sheet_name, read_mode)
 
     def excel_read_sheet_sessions(self, sheet_name: str) -> dict | list | bool:
         """Read excel sheet 'sessions' and return content as dict/array.
@@ -395,7 +482,9 @@ class SessionMaker:
         return xmltodict.unparse(dict_data)
 
     def print_xml(self, **kwargs):
-        """Print XML (ET.Element) object 'xml_element' to stdout as formated XML. If not set, use self._session_xml attribute.
+        """
+        Print XML (ET.Element) object 'xml_element' to stdout as formated XML.
+        If not set, use self._session_xml attribute.
 
         Args:
             xml_element (ET.Element, optional): Element to print.

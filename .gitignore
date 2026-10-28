@@ -3,7 +3,8 @@
 .vscode/*
 
 # venv
-.venv/*
+.venv
+.env
 
 # temporary files
 __pycache__
@@ -13,3 +14,7 @@ debug.log
 # data (EXAMPLES only)
 data/*
 !data/EXAMPLE
+
+# custom templates
+session_defaults/rdm.d/*
+!session_defaults/rdm.d/*.example

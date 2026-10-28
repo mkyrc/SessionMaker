@@ -1,0 +1,89 @@
+name: Release
+
+# Create a GitHub release (tag + release notes) after a commit to main/master.
+# Version is read from the VERSION file, release notes from the matching
+# section ("## <version> (...)") in CHANGELOG.md.
+# If a release for the version already exists, nothing is done.
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [ -z "$version" ]; then
+            echo "VERSION file is empty." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          # pre-release when version contains 'rc', 'alpha' or 'beta'
+          if echo "$version" | grep -Eqi 'rc|alpha|beta'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check if release exists
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.version.outputs.tag }} already exists. Skipping."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract release notes from CHANGELOG.md
+        if: steps.exists.outputs.exists == 'false'
+        run: |
+          awk -v ver="${{ steps.version.outputs.version }}" '
+            /^## / {
+              if (found) exit
+              if ($2 == ver) { found = 1; next }
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ -s release_notes.md ]; then
+            echo "Release notes found in CHANGELOG.md."
+          else
+            echo "No CHANGELOG.md section for ${{ steps.version.outputs.version }}; notes will be generated."
+            rm -f release_notes.md
+          fi
+
+      - name: Create release
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(
+            "${{ steps.version.outputs.tag }}"
+            --target "${{ github.sha }}"
+            --title "${{ steps.version.outputs.tag }}"
+          )
+          if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then
+            args+=(--prerelease)
+          fi
+          if [ -f release_notes.md ]; then
+            args+=(--notes-file release_notes.md)
+          else
+            args+=(--generate-notes)
+          fi
+          gh release create "${args[@]}"

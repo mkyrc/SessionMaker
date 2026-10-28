@@ -458,7 +458,7 @@ class SMDevolutionsRdm(SessionMaker):
         # prepare folder path and add parent recursively
         if "/" in folder:
             folder = folder.replace("/", "\\")
-        folder_list = folder.split("\\")
+        folder_list = folder.rstrip("\\").split("\\")
         folder_name = folder_list[-1]
         if len(folder_list) > 1:
             self.__build_rdm_connection_folder(folder="\\".join(folder_list[0:-1]))
@@ -798,6 +798,10 @@ class SMDevolutionsRdm(SessionMaker):
 
         # get folder path and session in a loop
         for idx, session_row in enumerate(self._sessions_dict["session"]):
+            # skip sessions with empty names
+            if str(session_row or "").strip() == "":
+                continue
+
             # get folders structure
             folder_path = self._sessions_dict["folder"][idx]
             folder_path = folder_path.replace("/", "\\")

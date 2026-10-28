@@ -571,7 +571,7 @@ class SMSecureCrt(SessionMaker):
         # get folder path and session in a loop
         for idx, session_row in enumerate(self._sessions_dict["session"]):
             # get folders structure
-            folder_path = self._sessions_dict["folder"][idx]
+            folder_path = self._sessions_dict["folder"][idx].rstrip("/")
             if folder_path == "":
                 # no folder path
                 folders_xml = None

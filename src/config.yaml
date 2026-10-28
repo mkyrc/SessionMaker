@@ -22,6 +22,9 @@ excel:
     # Devolutions RDM values:
     rdm_credential: rdm credential
     rdm_host: rdm host
+    rdm_web_form: web login form
+    rdm_web_login: web login field
+    rdm_web_passwd: web password field
 
     # SecureCRT values:
     scrt_credential: scrt credential

@@ -32,10 +32,8 @@ class SMRemmina(SessionMaker):
         parts = [part for part in folder.split("/") if part not in ("", ".", "..")]
         return "/".join(parts), parts
 
-    def _safe_filename(self, session: str, session_type: str) -> str:
-        session_name = session.strip()
-        if session_name == "":
-            session_name = "session"
+    def _safe_filename(self, session_name: str, session_type: str) -> str:
+        session_name = session_name.strip()
 
         for char in ['/', '\\', ':', '*', '?', '"', '<', '>', '|']:
             session_name = session_name.replace(char, "_")
@@ -193,6 +191,10 @@ class SMRemmina(SessionMaker):
             return profile_count, skipped_count
 
         for idx, session_name in enumerate(self._sessions_dict["session"]):
+            if session_name.strip() == "":
+                # Skip sessions with empty names.
+                continue
+
             session_type = self._sessions_dict["type"][idx]
             protocol = self._session_type_to_protocol(session_type)
             if protocol is None:

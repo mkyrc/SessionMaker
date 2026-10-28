@@ -4,6 +4,10 @@ name: Release
 # Version is read from the VERSION file, release notes from the matching
 # section ("## <version> (...)") in CHANGELOG.md.
 # If a release for the version already exists, nothing is done.
+#
+# If tag creation is restricted by a repository ruleset, GITHUB_TOKEN cannot
+# create the tag. In that case add secret RELEASE_TOKEN (PAT of a user/app that
+# is allowed to bypass the ruleset, permission: Contents read/write).
 
 on:
   push:
@@ -42,7 +46,7 @@ jobs:
       - name: Check if release exists
         id: exists
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
           if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
             echo "Release ${{ steps.version.outputs.tag }} already exists. Skipping."
@@ -71,7 +75,7 @@ jobs:
       - name: Create release
         if: steps.exists.outputs.exists == 'false'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
           args=(
             "${{ steps.version.outputs.tag }}"

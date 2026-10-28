@@ -1,0 +1,17 @@
+[remmina]
+group=EXAMPLE/rdp
+name=device3
+server=10.0.0.3
+protocol=RDP
+exec=
+keyboard_grab=0
+ignore-tls-errors=1
+disableclipboard=0
+shareprinter=0
+authentication level=0
+sharesmartcard=0
+colordepth=99
+execpath=
+gateway_usage=0
+gateway_server=
+username=user2

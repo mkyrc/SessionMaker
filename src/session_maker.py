@@ -20,7 +20,7 @@ from datetime import datetime
 
 # import lib
 from lib import parse_maker_args, init_logging
-from lib import SMSecureCrt, SMDevolutionsRdm, Settings
+from lib import SMSecureCrt, SMDevolutionsRdm, SMRdp, SMRemmina
 
 # ====================
 # Main functions
@@ -38,7 +38,7 @@ def main():
     ## default settings
     config_file = "config.yaml"  # default settings file
     src_file = None  # Excel file
-    dst_file = None  # SecureCRT XML or Devolutions RDM JSON file
+    dst_file = None  # destination file/folder
 
     # arguments
     # ==========
@@ -76,6 +76,10 @@ def main():
                 dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-scrt.xml"
             if ARGS.type == "rdm":
                 dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdm.json"
+            if ARGS.type == "rdp":
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-rdp"
+            if ARGS.type == "remmina":
+                dst_file = f"{src_folder[0]}/export/{current_date}-{filename}-remmina"
 
     if not ARGS.quiet:
         print("Done.")
@@ -101,6 +105,24 @@ def main():
             stg=stg,
             src_file=src_file,
             dst_file=dst_file,
+            quiet=ARGS.quiet,
+            stdout=ARGS.print,
+        )
+
+    if ARGS.type == "rdp":
+        rdp_maker(
+            settings=config_data,
+            src_file=src_file,
+            dst_folder=dst_file,
+            quiet=ARGS.quiet,
+            stdout=ARGS.print,
+        )
+
+    if ARGS.type == "remmina":
+        remmina_maker(
+            settings=config_data,
+            src_file=src_file,
+            dst_folder=dst_file,
             quiet=ARGS.quiet,
             stdout=ARGS.print,
         )
@@ -313,6 +335,94 @@ def rdm_maker(
 
     if not quiet:
         print("Done.")
+
+
+def rdp_maker(
+    src_file: str | None = None,
+    dst_folder: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
+    if settings is None:
+        settings = {}
+
+    if stdout:
+        if not quiet:
+            print("RDP export does not support '--print'. Use '--write' to define destination folder.")
+        return
+
+    if not quiet:
+        print("Reading Excel book...")
+
+    sm_rdp = SMRdp(settings=settings, excel_file=src_file, read_excel_file=True)
+
+    sessions_dict = sm_rdp.excel_read_sheet_sessions(settings["excel"]["tab_sessions"])
+
+    if sessions_dict is False:
+        if not quiet:
+            print("Exit.")
+        return
+
+    if not quiet:
+        c_total = sm_rdp.get_sessions_dict_count([""])
+        c_rdp = sm_rdp.get_sessions_dict_count(["rdp"])
+        print(f"Done. {c_total} session(s) (rdp: {c_rdp}) from Excel.")
+
+    if not quiet:
+        print("Building RDP files...")
+
+    created_count, skipped_count = sm_rdp.write_rdp_files(str(dst_folder))
+
+    if not quiet:
+        print(
+            f"Done. Created {created_count} profile(s), skipped {skipped_count} session(s)."
+        )
+        print(f"Export folder: '{dst_folder}'")
+
+
+def remmina_maker(
+    src_file: str | None = None,
+    dst_folder: str | None = None,
+    settings=None,
+    quiet=False,
+    stdout=False,
+):
+    if settings is None:
+        settings = {}
+
+    if stdout:
+        if not quiet:
+            print("Remmina export does not support '--print'. Use '--write' to define destination folder.")
+        return
+
+    if not quiet:
+        print("Reading Excel book...")
+
+    sm_remmina = SMRemmina(settings=settings, excel_file=src_file, read_excel_file=True)
+
+    sessions_dict = sm_remmina.excel_read_sheet_sessions(settings["excel"]["tab_sessions"])
+
+    if sessions_dict is False:
+        if not quiet:
+            print("Exit.")
+        return
+
+    if not quiet:
+        c_total = sm_remmina.get_sessions_dict_count([""])
+        c_rdp = sm_remmina.get_sessions_dict_count(["rdp"])
+        print(f"Done. {c_total} session(s) (rdp: {c_rdp}) from Excel.")
+
+    if not quiet:
+        print("Building Remmina profiles...")
+
+    created_count, skipped_count = sm_remmina.write_remmina_files(str(dst_folder))
+
+    if not quiet:
+        print(
+            f"Done. Created {created_count} profile(s), skipped {skipped_count} session(s)."
+        )
+        print(f"Export folder: '{dst_folder}'")
 
 
 # ====================

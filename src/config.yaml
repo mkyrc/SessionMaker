@@ -23,6 +23,9 @@ excel:
     rdm_credential: rdm credential
     rdm_host: rdm host
     rdm_script_before_open: rdm script before open
+    rdm_web_form: web login form
+    rdm_web_login: web login field
+    rdm_web_passwd: web password field
 
     # SecureCRT values:
     scrt_credential: scrt credential
@@ -70,3 +73,18 @@ scrt:
 # ==========
 rdm:
   session_defaults: session_defaults/rdm.d/
+  
+# RDP settings
+# ==========
+rdp:
+  # default RDP file with (default) session settings
+  template:
+    rdp: templates/rdp_default.rdp
+
+# ==========
+# Remmina settings
+# ==========
+remmina:
+  # default Remmina profile with (default) RDP session settings
+  template:
+    rdp: templates/remmina_rdp_default.remmina

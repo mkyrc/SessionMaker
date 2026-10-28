@@ -12,7 +12,7 @@
 
 - [SessionMaker](#sessionmaker)
   - [Description](#description)
-    - [Important news](#important-news)
+    - [Changelog](#changelog)
     - [Supported features](#supported-features)
   - [Session Maker](#session-maker)
     - [Usage](#usage)
@@ -23,11 +23,11 @@
   - [Excel workbook structure](#excel-workbook-structure)
     - ['sessions' worksheet columns](#sessions-worksheet-columns)
     - ['rdm-credentials' worksheet columns](#rdm-credentials-worksheet-columns)
+    - ['rdm-host' worksheet columns](#rdm-host-worksheet-columns)
     - ['scrt-credentials' worksheet columns](#scrt-credentials-worksheet-columns)
     - ['scrt-firewalls' worksheet columns](#scrt-firewalls-worksheet-columns)
-  - [Configuration](#configuration)
-  - [Versioning](#versioning)
-  - [Authors](#authors)
+  - [Custom configuration](#custom-configuration)
+  - [Author](#author)
   - [License](#license)
 
 ## Description
@@ -35,12 +35,16 @@
 Excel workbook to SecureCRT and/or Devolutions RDM sessions (and vice-versa) converter. The goal of the project is to make life easier for network engineers ;-).
 
 > **Important:**<br>
-> Session Reader or Session Maker never works with secreds/password! There is possible define only usernames (including credentials).
+> Session Reader or Session Maker never works with secrets/password! There is possible define only usernames (including credentials).
 
 There are two parts:
 
-- [**Session Maker**](#session-maker) - Generate SecureCRT `XML` or Devolutions RDM `JSON` file from Excel book source (Excel -> XML/JSON)
-- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT `XML` sessions export file (XML -> Excel).
+- [**Session Maker**](#session-maker) - generates sessions from Excel book to:
+  - Generate SecureCRT sessions (`.xml`)
+  - Devolutions RDM sessions (`.json`)
+  - Generic RDP files (`.rdp`)
+  - Remmina profile files (`.remmina`)
+- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT sessions file
 
 ### Changelog
 
@@ -52,22 +56,29 @@ For more details see [CHANGELOG.md](CHANGELOG.md) file.
 
 ### Supported features
 
-| Feature            | SecureCRT | Devolution RDM | Description                                                 |
-| ------------------ | :-------: | :------------: | ----------------------------------------------------------- |
-| Folders            |    yes    |      yes       | Path to session (or any other object, e.g. credentials,...) |
-| Username           |    yes    |      yes       | Username (not used when credentials is defined)             |
-| Credentials        |    yes    |      yes       | Credentials definitions (higher preference than username)   |
-| SSH Session        |    yes    |      yes       | SSH session support                                         |
-| RDP Session        |    no     |      yes       | RDP session support                                         |
-| WEB Session        |    no     |      yes       | WEB session support                                         |
-| Script             |    no     |      yes       | PowerShell script before login support                      |
-| Colorscheme        |    yes    |       no       | Terminal colorscheme                                        |
-| Keywords           |    yes    |       no       | Keyword highlighting (per session)                          |
-| Firewall groups    |    yes    |       no       | Firewall groups definition (SecureCRT feature)              |
-| User Customization |    no     |      yes       | User can define [session defaults](#session-defaults)       |
+SecureCRT, Devolution RDM support:
 
-> **Note:**<br>
-> Some Excel (including RAW fields) is possibe to define by user. For more details see [Session defaults](#session-defaults).
+| Feature         | SecureCRT | Devolution RDM | Description                                                 |
+| --------------- | :-------: | :------------: | ----------------------------------------------------------- |
+| Folders         |    yes    |      yes       | Path to session (or any other object, e.g. credentials,...) |
+| Username        |    yes    |      yes       | Username (not used when credentials is defined)             |
+| Credentials     |    yes    |      yes       | Credentials definitions (higher preference than username)   |
+| SSH Session     |    yes    |      yes       | SSH session support                                         |
+| RDP Session     |    no     |      yes       | RDP session support                                         |
+| WEB Session     |     -     |      yes       | WEB session support                                         |
+| Colorscheme     |    yes    |       no       | Terminal colorscheme                                        |
+| Keywords        |    yes    |       no       | Keyword highlighting (per session)                          |
+| Firewall groups |    yes    |       -        | Firewall groups definition (SecureCRT feature)              |
+
+Remmina and RDP support:
+
+| Feature         | Remmina |  RDP  | Description                                                 |
+| --------------- | :-----: | :---: | ----------------------------------------------------------- |
+| Folders         |   yes   |   -   | Path to session (or any other object, e.g. credentials,...) |
+| Username        |   yes   |  yes  | Username (not used when credentials is defined)             |
+| SSH Session     |   yes   |   -   | SSH session support                                         |
+| RDP Session     |   no    |  yes  | RDP session support                                         |
+| Alternate shell |   yes   |  yes  | Alternate shell (Exec shell)                                |
 
 ## Session Maker
 
@@ -76,19 +87,23 @@ Reads Excel workbook and generate SecureCRT sessions content (XML file) or Devol
 ```mermaid
 graph LR;
     Excel["Excel (xlsx)"]-->SM("Session Maker")
-    SM-->scrt["SecureCRT (xml)"]
-    SM-->rdm["DevolutionsRDM (json)"];
+    SM-->scrt["SecureCRT sessions file (.xml)"]
+    SM-->rdm["DevolutionsRDM sessions file (.json)"];
+    SM-->rdp["RDP files (.rdp)"];
+    SM-->remmina["Remmina files (.remmina)"];
 ```
 
 ### Usage
 
 It is simple - read help :).
 
+Run the scripts from the `src` folder (`cd src`); all paths below are relative to it.
+
 ```
 $ python3 session_maker.py -h
-usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm}] [--write DESTINATION | -p] [-q | -v | --version] source
+usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm,rdp,remmina}] [--write DESTINATION | -p] [-q | -v] source
 
-Read Excel file (source) and generate sessions XML file for [SecureCRT|Devolutions].
+Read Excel file (source) and generate sessions output for [SecureCRT|Devolutions|RDP|Remmina].
 
 positional arguments:
   source                Source (XLS) file
@@ -96,8 +111,8 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration settings file (default=config.yaml)
-  --type {scrt,rdm}, -t {scrt,rdm}
-                        Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM
+  --type {scrt,rdm,rdp,remmina}
+                        Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM, rdp=RDP files (.rdp), remmina=Remmina profiles (.remmina)
   --write DESTINATION, -w DESTINATION
                         Write to file. If not specified, write to 'export' subfolder as the source.
   -p, --print           Print to screen only (don't write it to the file).
@@ -106,10 +121,14 @@ options:
   --version             show program's version number and exit
 ```
 
-XML content can be exported to:
+Export can be written as:
 
-- **file**: Option `--write`. If not defined, the file is stored in `export` subfolder
+- **file/folder**: Option `--write`. If not defined, output is stored in `export` subfolder
 - **stdout**: Option `--print`.
+
+> **Note:** For `--type rdp`, export is generated as multiple files in a destination folder (one file per session) and `--print` is not supported. Only RDP sessions are exported (other types are ignored) as `.rdp` files built from the template `rdp.template.rdp` in `config.yaml` (default `templates/rdp_default.rdp`) with `full address`, `username` and `alternate shell` (Excel column `rdp alternate shell`) taken from Excel.
+
+> **Note:** For `--type remmina`, export is generated as `.remmina` files in one destination folder (`--print` is not supported). Only RDP sessions are exported. File name is `<group>_<type>_<name>_<ip>.remmina`, where `group` is the Excel `folder` value with `/` replaced by `-`. Defaults are read from the template `remmina.template.rdp` in `config.yaml` (default `templates/remmina_rdp_default.remmina`) and `name`, `group`, `server`, `username` and `exec` (Excel column `rdp alternate shell`) are taken from Excel.
 
 ### Example
 
@@ -207,16 +226,17 @@ graph LR;
 
 ```
 $ python session_reader.py -h
-usage: session_reader.py [-h] [--config CONFIG] [-w DESTINATION] [-q | -v] source
+usage: session_reader.py [-h] [--config CONFIG] [--type {scrt}] [-w DESTINATION] [-q | -v] source [source ...]
 
-Read SecureCRT sessions XML file (source) and export it to Excel file (write to destination).
+Read SecureCRT XML and export them to Excel file (write to destination).
 
 positional arguments:
-  source                SecureCRT sessions XML file (export from SecureCRT).
+  source                Source file(s): SecureCRT XML.
 
 options:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration settings file (default=config.yaml)
+  --type {scrt}         Source type: scrt=SecureCRT XML (default).
   -w DESTINATION, --write DESTINATION
                         Write to destination Excel (xlsx) file. If not defined, write to the 'export' subfolder.
   -q, --quiet           Quiet output.
@@ -274,7 +294,7 @@ Excel workbook contains 4 worksheets:
 - **[scrt-firewalls](#scrt-firewalls-worksheet-columns)**: SecureCRT firewall groups list
 
 > **Note:** <br>
-> All column names described below can be changed in [config.yaml](config.yaml) file.
+> All column names described below can be changed in [config.yaml](src/config.yaml) file.
 
 ### 'sessions' worksheet columns
 
@@ -301,7 +321,7 @@ Excel workbook contains 4 worksheets:
 | scrt firewall group     |          |            | Firewall group or Session name (path/to/session)               |
 
 > **Note:**
-> For details see `['excel']['col_names_sessions']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_sessions']` in [config.yaml](src/config.yaml) file.
 
 ### 'rdm-credentials' worksheet columns
 
@@ -324,7 +344,7 @@ Excel workbook contains 4 worksheets:
 | rdm credential |          |         | RDM Credential object path |
 
 > **Note:**
-> For details see `['excel']['col_names_rdm_credentials']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_rdm_credentials']` in [config.yaml](src/config.yaml) file.
 
 ### 'scrt-credentials' worksheet columns
 
@@ -334,7 +354,7 @@ Excel workbook contains 4 worksheets:
 | username         |          |         | Username              |
 
 > **Note:**
-> For details see `['excel']['col_names_scrt_credentials']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_scrt_credentials']` in [config.yaml](src/config.yaml) file.
 
 ### 'scrt-firewalls' worksheet columns
 
@@ -346,49 +366,17 @@ Excel workbook contains 4 worksheets:
 | username       |          |         | Username               |
 
 > **Note:**
-> For details see `['excel']['col_names_scrt_firewalls']` in [config.yaml](config.yaml) file.
+> For details see `['excel']['col_names_scrt_firewalls']` in [config.yaml](src/config.yaml) file.
 
 ## Custom configuration
 
-### Excel column names
+Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize. 
 
-Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize in [config.yaml](config.yaml) file.
-
-### Session defaults
-
-Starting version 0.5.0, the user can define default settings in the `session_defaults/rdm.d` folder in the `*.yaml` file(s). It is possible to configure defaults for sessions only (selected columns in `sessions` Excel worksheet including full RAW access to JSON fields).
-
-For more details see [session_defaults](session_defaults) folder.
-
-### RDM supported fields
-
-| configuration object   | session type | supported | description                       |
-| ---------------------- | ------------ | :-------: | --------------------------------- |
-| **Excel (`sessions)`** |
-| folder                 | ssh, rdp     |    no     |                                   |
-| session                | ssh, rdp     |    no     |                                   |
-| type                   | ssh, rdp     |    no     |                                   |
-| port                   | ssh, rdp     |    yes    |                                   |
-| rdm credential         | ssh, rdp     |    yes    |                                   |
-| rdm host               | ssh, rdp     |    yes    |                                   |
-| rdm script before open | ssh, rdp     |    yes    |                                   |
-| web login form         | ssh, rdp     |    no     |                                   |
-| web login field        | ssh, rdp     |    no     |                                   |
-| web password field     | ssh, rdp     |    no     |                                   |
-| **RAW (JSON)**         |
-| _no limit_             | ssh, rdp     |    yes    | There is no limit for JSON fields |
-
-### SCRT supported fields
-
-TODO
-
-## Versioning
-
-This project use [SemVer](http://semver.org/) for versioning. For the versions available, see the tags on main repository.
+For more detials see [config.yaml](src/config.yaml) file.
 
 ## Author
 
-- 2022-2024, Martin Kyrc ([@mkyrc](https://github.com/mkyrc))
+- **Martin Kyrc** - 2022-2026 - [@mkyrc](https://github.com/mkyrc) on Github
 
 ## License
 

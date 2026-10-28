@@ -18,9 +18,11 @@ import os.path
 from pathlib import Path
 
 # import lib
-from lib import parse_reader_args, init_logging
-from lib import set_config_file, read_config_file
-from lib import SMSecureCrt  # , SMExcel
+from lib.parseargs import parse_reader_args
+from lib.logging import init_logging
+from lib.settings import set_config_file
+from lib.settings import read_config_file
+from lib.sm_scrt import SMSecureCrt
 
 # ====================
 # Main function
@@ -32,8 +34,8 @@ def main():
 
     ## default settings
     config_file = "config.yaml"  # default settings file
-    src_file = None  # SecureCRT XML file
-    dst_file = None  # Excel file
+    src_input = []  # source file(s)/folder(s)
+    dst_file = None # Excel file
 
     # arguments
     # ==========
@@ -50,34 +52,37 @@ def main():
     if config_data is False:
         return
 
-    # source file (SecureCRT XML)
+    # source file(s)
     if ARGS.source:
-        src_file = ARGS.source
+        src_input = ARGS.source
 
     # destination file (excel)
     # if undefined, export to 'export' subfolder
     if ARGS.write != None:
         dst_file = ARGS.write
     else:
-        src_folder = os.path.split(ARGS.source)
-        filename = Path(src_folder[1]).stem
-        dst_file = src_folder[0] + "/export/" + filename + ".xlsx"
+        first_source = src_input[0]
+        if os.path.isdir(first_source):
+            source_dir = first_source
+            source_name = Path(first_source).name
+        else:
+            src_folder = os.path.split(first_source)
+            source_dir = src_folder[0]
+            source_name = Path(src_folder[1]).stem
+
+        if source_name == "":
+            source_name = "sessions"
+        dst_file = source_dir + "/export/" + source_name + ".xlsx"
 
     if not ARGS.quiet:
         print("Done.")
 
-    # Read a sessions
-    # ===========
-
-    example = 2
-
-    if example == 1:
-        scrt_reader_1(
-            settings=config_data, src_file=src_file, dst_file=dst_file, quiet=ARGS.quiet
-        )
-    elif example == 2:
+    if ARGS.type == "scrt":
         scrt_reader_2(
-            settings=config_data, src_file=src_file, dst_file=dst_file, quiet=ARGS.quiet
+            settings=config_data,
+            src_file=src_input[0],
+            dst_file=dst_file,
+            quiet=ARGS.quiet,
         )
 
 

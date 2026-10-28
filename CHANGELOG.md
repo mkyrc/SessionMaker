@@ -13,7 +13,7 @@
 - SessionMaker: RDP export support (`--type rdp`, Excel -> `.rdp` files)
 - SessionMaker: Remmina export support (`--type remmina`, Excel -> `.remmina` profiles for RDP sessions only)
 
-## Fixed
+### Fixed
 
 - Session folder path with '/' at the end generates in some cases empty folder. Fixed.
 

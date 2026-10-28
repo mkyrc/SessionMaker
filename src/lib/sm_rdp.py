@@ -1,6 +1,5 @@
-"""Remmina session generator"""
+"""RDP file generator (Excel -> .rdp)"""
 
-import configparser
 import logging
 import os
 from pathlib import Path
@@ -8,8 +7,8 @@ from pathlib import Path
 from .sm_class import SessionMaker
 
 
-class SMRemmina(SessionMaker):
-    """SessionMaker - Remmina profile generator class"""
+class SMRdp(SessionMaker):
+    """SessionMaker - RDP file generator class"""
 
     def __init__(
         self,
@@ -40,9 +39,9 @@ class SMRemmina(SessionMaker):
 
         session_suffix = session_type.strip().lower()
         if session_suffix == "":
-            return f"{session_name}.remmina"
+            return f"{session_name}.rdp"
 
-        return f"{session_name}-{session_suffix}.remmina"
+        return f"{session_name}-{session_suffix}.rdp"
 
     def _build_server(self, hostname: str, port: str) -> str:
         host = hostname.strip()
@@ -55,134 +54,56 @@ class SMRemmina(SessionMaker):
 
         return f"{host}:{clean_port}"
 
-    def _session_type_to_protocol(self, session_type: str) -> str | None:
-        mapping = {
-            "ssh": "SSH",
-            "rdp": "RDP",
-        }
-        return mapping.get(session_type.strip().lower())
+    def _read_rdp_template(self) -> list[list[str]]:
+        """Read RDP template file as list of [key, type, value] items."""
+        template_file = self._settings.get("rdp", {}).get("template", {}).get("rdp", "")
+        items: list[list[str]] = []
+        if template_file == "":
+            return items
 
-    def _protocol_to_session_type(self, protocol: str) -> str | None:
-        protocol_name = protocol.strip().lower()
-        mapping = {
-            "ssh": "ssh",
-            "rdp": "rdp",
-        }
-        return mapping.get(protocol_name)
+        try:
+            with open(template_file, "r", encoding="utf-8-sig") as rdp_file:
+                for line in rdp_file:
+                    line = line.rstrip("\r\n")
+                    parts = line.split(":", 2)
+                    if len(parts) == 3 and parts[0].strip() != "":
+                        items.append([parts[0].strip(), parts[1].strip(), parts[2]])
+        except OSError:
+            logging.warning("Unable to read RDP template '%s'. Using empty template.", template_file)
 
-    def _split_server(self, server: str) -> tuple[str, str]:
-        value = server.strip()
-        if value == "":
-            return "", ""
+        return items
 
-        if value.startswith("[") and "]" in value:
-            end_bracket = value.find("]")
-            host = value[1:end_bracket].strip()
-            port = ""
-            if len(value) > end_bracket + 1 and value[end_bracket + 1] == ":":
-                port = value[end_bracket + 2 :].strip()
-            return host, port
-
-        if value.count(":") == 1:
-            host, port = value.rsplit(":", 1)
-            return host.strip(), port.strip()
-
-        return value, ""
-
-    def _read_profile_file(self, profile_file: str) -> dict | None:
-        parser = configparser.RawConfigParser(interpolation=None)
-        parser.optionxform = str
-
-        read_files = parser.read(profile_file, encoding="utf-8")
-        if not read_files or not parser.has_section("remmina"):
-            return None
-
-        get_value = lambda key: parser.get("remmina", key, fallback="").strip()
-        protocol = get_value("protocol")
-        session_type = self._protocol_to_session_type(protocol)
-        if session_type is None:
-            return None
-
-        session_name = get_value("name")
-        if session_name == "":
-            session_name = Path(profile_file).stem
-
-        group = get_value("group").replace("\\", "/").strip("/")
-        server = get_value("server")
-        hostname, port = self._split_server(server)
-
-        return {
-            "folder": group,
-            "session": session_name,
-            "type": session_type,
-            "hostname": hostname,
-            "port": port,
-            "username": get_value("username"),
-            "rdp_alternate": "",
-        }
-
-    def load_sessions_from_remmina_files(self, profile_files: list[str]) -> tuple[int, int]:
-        self.set_sessions_dict()
-        imported_count = 0
-        skipped_count = 0
-
-        for profile_file in profile_files:
-            try:
-                profile_data = self._read_profile_file(profile_file)
-            except (configparser.Error, OSError):
-                logging.warning("Unable to parse Remmina profile '%s'. Skipping.", profile_file)
-                skipped_count += 1
-                continue
-
-            if profile_data is None:
-                skipped_count += 1
-                logging.warning(
-                    "Remmina profile '%s' is missing required values or has unsupported protocol. Skipping.",
-                    profile_file,
-                )
-                continue
-
-            if profile_data["hostname"] == "":
-                skipped_count += 1
-                logging.warning("Remmina profile '%s' has empty server. Skipping.", profile_file)
-                continue
-
-            for key in self._sessions_dict:
-                self._sessions_dict[key].append(profile_data.get(key, ""))
-
-            imported_count += 1
-
-        return imported_count, skipped_count
-
-    def write_excel(self, excel_file: str):
-        self._excel_obj.write_excel_book(
-            excel_file=excel_file,
-            sessions_dict=self._sessions_dict,
-            rdm_credentials_dict={},
-            scrt_credentials_dict={},
-            scrt_firewalls_dict={},
-        )
-
-    def _build_profile_content(
+    def _build_rdp_content(
         self,
-        name: str,
-        group: str,
-        protocol: str,
         server: str,
         username: str,
+        alternate_shell: str,
     ) -> str:
-        lines = ["[remmina]"]
-        lines.append(f"name={name}")
-        if group != "":
-            lines.append(f"group={group}")
-        lines.append(f"protocol={protocol}")
-        lines.append(f"server={server}")
-        if username != "":
-            lines.append(f"username={username}")
+        """Build .rdp content from template, overridden by values from Excel."""
+        values = {
+            "full address": server,
+            "username": username,
+            "alternate shell": alternate_shell,
+        }
 
-        return "\n".join(lines) + "\n"
+        items = self._read_rdp_template()
+        used_keys: set[str] = set()
+        for item in items:
+            key = item[0].lower()
+            if key in values:
+                used_keys.add(key)
+                # empty Excel value keeps default from template (except for mandatory address)
+                if values[key] != "" or key == "full address":
+                    item[1] = "s"
+                    item[2] = values[key]
 
-    def write_remmina_profiles(self, export_dir: str):
+        for key, value in values.items():
+            if key not in used_keys and value != "":
+                items.append([key, "s", value])
+
+        return "\r\n".join(f"{key}:{kind}:{value}" for key, kind, value in items) + "\r\n"
+
+    def write_rdp_files(self, export_dir: str):
         profile_count = 0
         skipped_count = 0
         written_files: set[Path] = set()
@@ -196,22 +117,17 @@ class SMRemmina(SessionMaker):
                 continue
 
             session_type = self._sessions_dict["type"][idx]
-            protocol = self._session_type_to_protocol(session_type)
-            if protocol is None:
-                skipped_count += 1
-                logging.warning(
-                    "Session '%s' has unsupported type '%s' for Remmina. Skipping.",
-                    session_name,
-                    session_type,
-                )
+            if session_type.strip().lower() != "rdp":
+                # only RDP sessions are exported
                 continue
 
             folder = self._sessions_dict["folder"][idx]
-            group, folder_parts = self._normalize_folder(folder)
+            _, folder_parts = self._normalize_folder(folder)
 
             hostname = self._sessions_dict["hostname"][idx]
             port = self._sessions_dict["port"][idx]
             username = self._sessions_dict["username"][idx]
+            rdp_alternate = self._sessions_dict["rdp_alternate"][idx]
             server = self._build_server(hostname, port)
             if server == "":
                 skipped_count += 1
@@ -226,18 +142,16 @@ class SMRemmina(SessionMaker):
             destination_dir.mkdir(parents=True, exist_ok=True)
 
             destination_file = destination_dir / file_name
-            profile_content = self._build_profile_content(
-                name=session_name,
-                group=group,
-                protocol=protocol,
+            profile_content = self._build_rdp_content(
                 server=server,
                 username=username.strip(),
+                alternate_shell=rdp_alternate.strip(),
             )
 
             if destination_file in written_files:
                 counter = 2
                 while True:
-                    destination_file = destination_dir / f"{destination_file.stem.rsplit('~', 1)[0]}~{counter}.remmina"
+                    destination_file = destination_dir / f"{destination_file.stem.rsplit('~', 1)[0]}~{counter}{destination_file.suffix}"
                     if destination_file not in written_files:
                         break
                     counter += 1
@@ -254,8 +168,8 @@ class SMRemmina(SessionMaker):
                 )
             written_files.add(destination_file)
 
-            with open(destination_file, "w", encoding="utf-8") as remmina_file:
-                remmina_file.write(profile_content)
+            with open(destination_file, "w", encoding="utf-8", newline="") as rdp_file:
+                rdp_file.write(profile_content)
 
             profile_count += 1
 

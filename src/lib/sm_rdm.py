@@ -4,7 +4,6 @@ import logging
 import xml.etree.ElementTree as ET
 import uuid
 from .sm_class import SessionMaker
-from .sm_xml import SMXml
 
 
 # ========================================
@@ -83,14 +82,14 @@ class SMDevolutionsRdm(SessionMaker):
             False: In case of error
         """
         credentials_dict_ret = self.excel_read_sheet(sheet_name, "column")
-        if credentials_dict_ret == False:
+        if credentials_dict_ret is False:
             credentials_dict = None
         else:
             credentials_dict = self.col_name_normalize(
                 credentials_dict_ret,
                 self._settings["excel"]["col_names_rdm_credentials"],
             )
-        if self.set_credentials_dict(credentials_dict) == False:
+        if self.set_credentials_dict(credentials_dict) is False:
             return False
         else:
             return self._credentials_dict
@@ -361,7 +360,7 @@ class SMDevolutionsRdm(SessionMaker):
         # get XML element/content from XML file
         # xml_element = self.parse_xml_file(self.xml_file)
         # xml_element = self._xml_obj.parse_xml_file(self.xml_file)
-        if self._xml_sessions == None:
+        if self._xml_sessions is None:
             return False
 
         # self.set_xml_sessions(xml_element)
@@ -383,7 +382,6 @@ class SMDevolutionsRdm(SessionMaker):
         credentials_root = base_root.find("./key[@name='Credentials']")
 
         if credentials_root is not None:
-            folder = []
             logging.info("Importing credentials from XML file...")
             logging.debug(
                 " {0:>3} | {1:<20} | {2:<20}".format(
@@ -426,6 +424,14 @@ class SMDevolutionsRdm(SessionMaker):
         return self._sessions_dict
 
     def write_excel(self, **kwargs):
+        """Write RDM data to Excel file.
+
+        Args:
+            excel_file (str): Path to the Excel file.
+            credentials_dict (dict): Credentials dictionary.
+            sessions_dict (dict): Sessions dictionary.
+            firewalls_dict (dict): Firewalls dictionary.
+        """
         excel_file = str(kwargs.get("excel_file", self.excel_file))
         credentials_dict = kwargs.get("credentials_dict", self._credentials_dict)
         sessions_dict = kwargs.get("sessions_dict", self._sessions_dict)
@@ -497,7 +503,8 @@ class SMDevolutionsRdm(SessionMaker):
             session (str): RDP session name
             hostname (str, optional, default: ""): hostname/IP
             port (str, optional, default: "3389"): port
-            alternate_shell (str, optional, default: ""): alternate shell (command executed on connection)
+            alternate_shell (str, optional, default: ""): 
+                alternate shell (command executed on connection)
         """
 
         # TODO
@@ -590,7 +597,7 @@ class SMDevolutionsRdm(SessionMaker):
         conn_obj["Group"] = folder
         conn_obj["Name"] = session
         conn_obj["Terminal"] = {}
-        conn_obj["Terminal"]["Host"] = hostname                
+        conn_obj["Terminal"]["Host"] = hostname
         conn_obj["Terminal"]["HostPort"] = port
 
         # username
@@ -608,7 +615,7 @@ class SMDevolutionsRdm(SessionMaker):
         # host
         if rdm_host != "":
             # reference to host object
-            conn_obj["HostSourceMode"] = 1            
+            conn_obj["HostSourceMode"] = 1
             conn_obj["HostConnectionSavedPath"] = rdm_host
             host_uuid = self.__get_rdm_connection_uuid(rdm_host)
             conn_obj["HostConnectionID"] = host_uuid

@@ -26,7 +26,6 @@
     - ['scrt-credentials' worksheet columns](#scrt-credentials-worksheet-columns)
     - ['scrt-firewalls' worksheet columns](#scrt-firewalls-worksheet-columns)
   - [Configuration](#configuration)
-  - [Versioning](#versioning)
   - [Authors](#authors)
   - [License](#license)
 
@@ -35,18 +34,24 @@
 Excel workbook to SecureCRT and/or Devolutions RDM sessions (and vice-versa) converter. The goal of the project is to make life easier for network engineers ;-).
 
 > **Important:**<br>
-> Session Reader or Session Maker never works with passwords! There is possible define only usernames (including credentials).
+> Session Reader or Session Maker never works with passwords! There is possible define usernames only (including credentials) but no passwords or other secrets.
 
 There are two parts:
 
-- [**Session Maker**](#session-maker) - Generate SecureCRT `XML`, Devolutions RDM `JSON`, or Remmina `.remmina` profiles from Excel book source
-- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT `XML` or Remmina `.remmina` profiles
+- [**Session Maker**](#session-maker) - generates sessions from Excel book to:
+  - Generate SecureCRT sessions (`.xml`)
+  - Devolutions RDM sessions (`.json`)
+  - Generic RDP files (`.rdp`)
+  - Remmina profile files (`.remmina`)
+- [**Session Reader**](#session-reader) - Generate Excel book from SecureCRT sessions file
 
 ### Important news
 
 - Starting version 0.3.0 are worksheets or/and column names for unused settings not required.
 
 ### Supported features
+
+SecureCRT, Devolution RDM support:
 
 | Feature         | SecureCRT | Devolution RDM | Description                                                 |
 | --------------- | :-------: | :------------: | ----------------------------------------------------------- |
@@ -55,10 +60,20 @@ There are two parts:
 | Credentials     |    yes    |      yes       | Credentials definitions (higher preference than username)   |
 | SSH Session     |    yes    |      yes       | SSH session support                                         |
 | RDP Session     |    no     |      yes       | RDP session support                                         |
-| WEB Session     |    no     |      yes       | WEB session support                                         |
+| WEB Session     |     -     |      yes       | WEB session support                                         |
 | Colorscheme     |    yes    |       no       | Terminal colorscheme                                        |
 | Keywords        |    yes    |       no       | Keyword highlighting (per session)                          |
-| Firewall groups |    yes    |       no       | Firewall groups definition (SecureCRT feature)              |
+| Firewall groups |    yes    |       -        | Firewall groups definition (SecureCRT feature)              |
+
+Remmina and RDP support:
+
+| Feature         | Remmina |  RDP  | Description                                                 |
+| --------------- | :-----: | :---: | ----------------------------------------------------------- |
+| Folders         |   yes   |   -   | Path to session (or any other object, e.g. credentials,...) |
+| Username        |   yes   |  yes  | Username (not used when credentials is defined)             |
+| SSH Session     |   yes   |   -   | SSH session support                                         |
+| RDP Session     |   no    |  yes  | RDP session support                                         |
+| Alternate shell |   yes   |  yes  | Alternate shell (Exec shell)                                |
 
 ## Session Maker
 
@@ -67,9 +82,10 @@ Reads Excel workbook and generate SecureCRT sessions content (XML file) or Devol
 ```mermaid
 graph LR;
     Excel["Excel (xlsx)"]-->SM("Session Maker")
-    SM-->scrt["SecureCRT (xml)"]
-    SM-->rdm["DevolutionsRDM (json)"];
-    SM-->remmina["Remmina (*.remmina)"];
+    SM-->scrt["SecureCRT sessions file (.xml)"]
+    SM-->rdm["DevolutionsRDM sessions file (.json)"];
+    SM-->rdp["RDP files (.rdp)"];
+    SM-->remmina["Remmina files (.remmina)"];
 ```
 
 ### Usage
@@ -80,9 +96,9 @@ Run the scripts from the `src` folder (`cd src`); all paths below are relative t
 
 ```
 $ python3 session_maker.py -h
-usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm,remmina}] [--write DESTINATION | -p] [-q | -v] source
+usage: session_maker.py [-h] [--config CONFIG] [--type {scrt,rdm,rdp,remmina}] [--write DESTINATION | -p] [-q | -v] source
 
-Read Excel file (source) and generate sessions output for [SecureCRT|Devolutions|Remmina].
+Read Excel file (source) and generate sessions output for [SecureCRT|Devolutions|RDP|Remmina].
 
 positional arguments:
   source                Source (XLS) file
@@ -90,8 +106,8 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration settings file (default=config.yaml)
-  --type {scrt,rdm,remmina}
-                        Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM, remmina=Remmina
+  --type {scrt,rdm,rdp,remmina}
+                        Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM, rdp=RDP files (.rdp), remmina=Remmina profiles (.remmina)
   --write DESTINATION, -w DESTINATION
                         Write to file. If not specified, write to 'export' subfolder as the source.
   -p, --print           Print to screen only (don't write it to the file).
@@ -104,7 +120,9 @@ Export can be written as:
 - **file/folder**: Option `--write`. If not defined, output is stored in `export` subfolder
 - **stdout**: Option `--print`.
 
-> **Note:** For `--type remmina`, export is generated as multiple `.remmina` files in a destination folder (one file per session) and `--print` is not supported.
+> **Note:** For `--type rdp`, export is generated as multiple files in a destination folder (one file per session) and `--print` is not supported. Only RDP sessions are exported (other types are ignored) as `.rdp` files built from the template `rdp.template.rdp` in `config.yaml` (default `templates/rdp_default.rdp`) with `full address`, `username` and `alternate shell` (Excel column `rdp alternate shell`) taken from Excel.
+
+> **Note:** For `--type remmina`, export is generated as `.remmina` files in one destination folder (`--print` is not supported). Only RDP sessions are exported. File name is `<group>_<type>_<name>_<ip>.remmina`, where `group` is the Excel `folder` value with `/` replaced by `-`. Defaults are read from the template `remmina.template.rdp` in `config.yaml` (default `templates/remmina_rdp_default.remmina`) and `name`, `group`, `server`, `username` and `exec` (Excel column `rdp alternate shell`) are taken from Excel.
 
 ### Example
 
@@ -187,12 +205,11 @@ devices-v0.3.x.json
 
 ## Session Reader
 
-Reads SecureCRT sessions XML file (SecureCRT menu: `Tools -> Export settings...`) or Remmina profile file(s) and export it to Excel workbook.
+Reads SecureCRT sessions XML file (SecureCRT menu: `Tools -> Export settings...`) and export it to Excel workbook.
 
 ```mermaid
 graph LR;
     scrt["SecureCRT (XML)"]-->SR("Session Reader")
-    remmina["Remmina (*.remmina)"]-->SR("Session Reader")
     SR-->Excel["Excel (xlsx)"]
 
 ```
@@ -201,18 +218,17 @@ graph LR;
 
 ```
 $ python session_reader.py -h
-usage: session_reader.py [-h] [--config CONFIG] [--type {scrt,remmina}] [-w DESTINATION] [-q | -v] source [source ...]
+usage: session_reader.py [-h] [--config CONFIG] [--type {scrt}] [-w DESTINATION] [-q | -v] source [source ...]
 
-Read SecureCRT XML or Remmina profile(s) and export them to Excel file (write to destination).
+Read SecureCRT XML and export them to Excel file (write to destination).
 
 positional arguments:
-  source                Source file(s) or folder(s): SecureCRT XML or Remmina profile(s).
+  source                Source file(s): SecureCRT XML.
 
 options:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration settings file (default=config.yaml)
-  --type {scrt,remmina}
-                        Source type: scrt=SecureCRT XML (default), remmina=Remmina profile(s).
+  --type {scrt}         Source type: scrt=SecureCRT XML (default).
   -w DESTINATION, --write DESTINATION
                         Write to destination Excel (xlsx) file. If not defined, write to the 'export' subfolder.
   -q, --quiet           Quiet output.
@@ -220,8 +236,6 @@ options:
 ```
 
 If `--write` option is not defined, destination file is exported to `export` subfolder.
-
-For Remmina import (`--type remmina`) you can provide one or more `.remmina` files and/or folders. Folder content is searched recursively for `*.remmina` files.
 
 ### Example
 
@@ -335,15 +349,13 @@ Excel workbook contains 4 worksheets:
 
 ## Configuration
 
-Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize For more detials see [config.yaml](src/config.yaml) file.
+Excel worksheet and/or column names and SecureCRT custom settings (not configurable by Session Maker) is possible to customize. 
 
-## Versioning
-
-This project use [SemVer](http://semver.org/) for versioning. For the versions available, see the tags on main repository.
+For more detials see [config.yaml](src/config.yaml) file.
 
 ## Authors
 
-- **Martin Kyrc** - 2022 - [@mkyrc](https://github.com/mkyrc) on Github
+- **Martin Kyrc** - 2022-2026 - [@mkyrc](https://github.com/mkyrc) on Github
 
 ## License
 

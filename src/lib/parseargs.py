@@ -27,7 +27,7 @@ def parse_maker_args():
         object: Arguments
     """
     parser = argparse.ArgumentParser(
-        description="Read Excel file (source) and generate sessions output for [SecureCRT|Devolutions|Remmina]."
+        description="Read Excel file (source) and generate sessions output for [SecureCRT|Devolutions|RDP|Remmina]."
     )
     group1 = parser.add_mutually_exclusive_group()
     group2 = parser.add_mutually_exclusive_group()
@@ -42,9 +42,10 @@ def parse_maker_args():
     parser.add_argument("source", type=str, help="Source (XLS) file")
     parser.add_argument(
         "--type",
-        choices=["scrt", "rdm", "remmina"],
+        "-t", 
+        choices=["scrt", "rdm", "rdp", "remmina"],
         default="scrt",
-        help="Destination type: scrt=SecureCRT (default), rdm=DevolutionsRDM, remmina=Remmina",
+        help="Destination type: scrt=SecureCRT (default), rdm=Devolutions RDM, rdp=RDP files, remmina=Remmina profiles",
     )
     group1.add_argument(
         "--write",
@@ -59,7 +60,7 @@ def parse_maker_args():
         "--print",
         action="store_true",
         required=False,
-        help="Print to screen only (not supported for remmina export).",
+        help="Print to screen only (not supported for rdp and remmina export).",
     )
     group2.add_argument(
         "-q",
@@ -79,7 +80,7 @@ def parse_maker_args():
     group2.add_argument(        
         "--version", action="version",
         version = f"{parser.prog} version  {get_version()}"
-    )    
+    )
     arg = parser.parse_args()
 
     return arg
@@ -92,7 +93,7 @@ def parse_reader_args():
         object: Arguments
     """
     parser = argparse.ArgumentParser(
-        description="Read SecureCRT XML or Remmina profile(s) and export them to Excel file (write to destination)."
+        description="Read SecureCRT XML and export them to Excel file (write to destination)."
     )
     group1 = parser.add_mutually_exclusive_group()
     group2 = parser.add_mutually_exclusive_group()
@@ -108,13 +109,13 @@ def parse_reader_args():
         "source",
         nargs="+",
         type=str,
-        help="Source file(s) or folder(s): SecureCRT XML or Remmina profile(s).",
+        help="Source file(s): SecureCRT XML.",
     )
     parser.add_argument(
         "--type",
-        choices=["scrt", "remmina"],
+        choices=["scrt"],
         default="scrt",
-        help="Source type: scrt=SecureCRT XML (default), remmina=Remmina profile(s).",
+        help="Source type: scrt=SecureCRT XML (default).",
     )
 
     group1.add_argument(

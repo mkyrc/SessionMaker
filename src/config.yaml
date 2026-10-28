@@ -66,3 +66,19 @@ scrt:
     session_ssh: templates/scrt_default_session_ssh.xml
     credential: templates/scrt_default_credential.xml
     firewall: templates/scrt_default_firewall.xml
+
+# ==========
+# RDP settings
+# ==========
+rdp:
+  # default RDP file with (default) session settings
+  template:
+    rdp: templates/rdp_default.rdp
+
+# ==========
+# Remmina settings
+# ==========
+remmina:
+  # default Remmina profile with (default) RDP session settings
+  template:
+    rdp: templates/remmina_rdp_default.remmina

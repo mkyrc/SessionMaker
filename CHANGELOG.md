@@ -1,8 +1,6 @@
 # Changelog
 
-<!-- https://keepachangelog.com/en/1.0.0/ -->
-
-## Unreleased
+## 0.4.0rc2 (2026-10-28)
 
 ### Changed
 
@@ -10,10 +8,14 @@
 
 ### Added
 
-- SessionMaker: initial Remmina export support (Excel -> `.remmina` profiles)
-- SessionReader: initial Remmina import support (`.remmina` file(s)/folder -> Excel)
+- SessionMaker: RDP export support (`--type rdp`, Excel -> `.rdp` files)
+- SessionMaker: Remmina export support (`--type remmina`, Excel -> `.remmina` profiles for RDP sessions)
 
-## 0.4.0-rc.1 (2024-11-22)
+## Fixed
+
+- Session folder path with '/' at the end generates in some cases empty folder. Fixed.
+
+## 0.4.0rc1 (2024-11-22)
 
 ### Update
 
@@ -23,19 +25,19 @@
 
 - SessionMaker: support for RDM object type "Host"
 
-## 0.3.0-rc5 (2023-08-30)
+## 0.3.0rc5 (2023-08-30)
 
 ### Fixed
 
 - Compatibility issue with openpyxl 3.1.0 (https://github.com/pyexcel/pyexcel-xlsx/issues/52)
 
-## 0.3.0-rc4 (2023-08-24)
+## 0.3.0rc4 (2023-08-24)
 
 ### Added
 
 - Now is possible print program version
 
-## 0.3.0-rc3 (2023-06-02)
+## 0.3.0rc3 (2023-06-02)
 
 ### Fixed
 
@@ -49,13 +51,13 @@
 
 - SessionReader: Column width in verbose mode during import XML
 
-## 0.3.0-rc2 (2023-05-15)
+## 0.3.0rc2 (2023-05-15)
 
 ### Other
 
 - Code cleanup
 
-## 0.3.0-rc1 (2023-05-08)
+## 0.3.0rc1 (2023-05-08)
 
 ### Added
 

@@ -11,7 +11,7 @@
 - SessionMaker: Session defaults
 - SessionMaker: RDM supports scripts (powershell script before open)
 - SessionMaker: RDP export support (`--type rdp`, Excel -> `.rdp` files)
-- SessionMaker: Remmina export support (`--type remmina`, Excel -> `.remmina` profiles for RDP sessions)
+- SessionMaker: Remmina export support (`--type remmina`, Excel -> `.remmina` profiles for RDP sessions only)
 
 ## Fixed
 

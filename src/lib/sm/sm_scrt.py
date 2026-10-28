@@ -48,7 +48,9 @@ class SMSecureCrt(SessionMaker):
         super().__init__(
             settings,
             excel_file,
-            read_excel_file=True,
+            read_excel_file=read_excel_file,
+            xml_file=xml_file,
+            read_xml_file=kwargs.get("read_xml_file", False),
             session_defaults=session_defaults_rdm,
         )
 

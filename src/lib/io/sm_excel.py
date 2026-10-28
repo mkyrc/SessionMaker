@@ -303,7 +303,7 @@ class SMExcel:
                 sheet.write(0, col, col_names[key], title_general)
 
                 # 3f8df3
-            if not key in data.keys():
+            if key not in data or len(data[key]) == 0:
                 data[key] = [""]
 
             # set column width

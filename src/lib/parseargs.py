@@ -11,7 +11,7 @@ import argparse
 # VERSION = __version__
 
 def get_version():
-    # Read the version from the VERSION file
+    """Read the version from the VERSION file"""
     version_file = "VERSION"
     try:
         with open(version_file, "r", encoding="utf8") as file:

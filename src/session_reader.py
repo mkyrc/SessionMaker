@@ -13,16 +13,15 @@ Revision:
         - initial version
 """
 
-# import logging
+import logging
 import os.path
 from pathlib import Path
 
 # import lib
 from lib.parseargs import parse_reader_args
 from lib.logging import init_logging
-from lib.settings import set_config_file
-from lib.settings import read_config_file
-from lib.sm_scrt import SMSecureCrt
+from lib.settings import Settings
+from lib.sm import SMSecureCrt
 
 # ====================
 # Main function
@@ -46,10 +45,11 @@ def main():
     # read config file
     # if undefined, use 'config.yaml'
     if ARGS.config:
-        config_file = set_config_file(ARGS.config.strip(), config_file)
+        config_file = ARGS.config.strip()
 
-    config_data = read_config_file(config_file)
-    if config_data is False:
+    stg = Settings(config_file)
+    if stg.app_config is None:
+        logging.error("Unable to read configuration file '%s'.", config_file)
         return
 
     # source file(s)
@@ -79,7 +79,7 @@ def main():
 
     if ARGS.type == "scrt":
         scrt_reader_2(
-            settings=config_data,
+            settings=stg.app_config,
             src_file=src_input[0],
             dst_file=dst_file,
             quiet=ARGS.quiet,

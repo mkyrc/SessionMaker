@@ -20,7 +20,8 @@ from datetime import datetime
 
 # import lib
 from lib import parse_maker_args, init_logging
-from lib import SMSecureCrt, SMDevolutionsRdm, SMRdp, SMRemmina
+from lib.settings import Settings
+from lib.sm import SMSecureCrt, SMDevolutionsRdm, SMRdp, SMRemmina
 
 # ====================
 # Main functions
@@ -111,7 +112,7 @@ def main():
 
     if ARGS.type == "rdp":
         rdp_maker(
-            settings=config_data,
+            settings=stg.app_config,
             src_file=src_file,
             dst_folder=dst_file,
             quiet=ARGS.quiet,
@@ -120,7 +121,7 @@ def main():
 
     if ARGS.type == "remmina":
         remmina_maker(
-            settings=config_data,
+            settings=stg.app_config,
             src_file=src_file,
             dst_folder=dst_file,
             quiet=ARGS.quiet,
@@ -365,7 +366,7 @@ def rdp_maker(
         return
 
     if not quiet:
-        c_total = sm_rdp.get_sessions_dict_count([""])
+        c_total = sm_rdp.get_sessions_dict_count()
         c_rdp = sm_rdp.get_sessions_dict_count(["rdp"])
         print(f"Done. {c_total} session(s) (rdp: {c_rdp}) from Excel.")
 
@@ -409,7 +410,7 @@ def remmina_maker(
         return
 
     if not quiet:
-        c_total = sm_remmina.get_sessions_dict_count([""])
+        c_total = sm_remmina.get_sessions_dict_count()
         c_rdp = sm_remmina.get_sessions_dict_count(["rdp"])
         print(f"Done. {c_total} session(s) (rdp: {c_rdp}) from Excel.")
 

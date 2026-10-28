@@ -341,6 +341,7 @@ class SMDevolutionsRdm(SessionMaker):
     def _build_conn_obj_username_rdp(self, username="", credential=""):
         conn_obj = {}
         if username != "" and credential == "":
+            conn_obj["RDP"] = {}
             conn_obj["RDP"]["Username"] = username
             conn_obj["PromptCredentials"] = "true"
 
@@ -780,13 +781,11 @@ class SMDevolutionsRdm(SessionMaker):
             )
 
         # rdp (required)
-        conn_obj.update(
+        conn_obj.setdefault("RDP", {}).update(
             {
-                "RDP": {
-                    "NetworkLevelAuthentication": "false",
-                    "AuthentificationLevel": 2,
-                    "OpenEmbedded": "true",
-                }
+                "NetworkLevelAuthentication": "false",
+                "AuthentificationLevel": 2,
+                "OpenEmbedded": "true",
             }
         )
 
